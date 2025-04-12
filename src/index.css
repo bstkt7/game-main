@@ -1,0 +1,115 @@
+/* Импорт шрифта Press Start 2P (самая первая строка!) */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* Убираем стандартные отступы и настраиваем box-sizing */
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Запрещаем скролл всей страницы */
+  /* Применяем шрифт ко всей странице, с запасным вариантом */
+  font-family: 'Press Start 2P', cursive;
+  color: white; /* Основной цвет текста */
+  /* Сглаживание шрифтов (опционально) */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+   /* Предотвращение выделения текста */
+   user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Переопределяем шрифт для кнопок, чтобы он наследовался или был таким же */
+button {
+   font-family: inherit; /* Наследует шрифт от body */
+   /* ИЛИ явно задаем: */
+   /* font-family: 'Press Start 2P', cursive; */
+}
+
+
+/* Стиль для тега kbd в инструкциях (оставляем как есть или тоже меняем шрифт?) */
+/* Если хотите чтобы и kbd был Press Start, замените font-family */
+kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  margin: 0 2px;
+  background-color: #4b5563;
+  color: #e5e7eb;
+  border: 1px solid #6b7280;
+  border-radius: 4px;
+  box-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+  font-family: 'Press Start 2P', cursive; /* <--- Изменено на Press Start */
+  /* font-family: monospace; */ /* Старый вариант */
+  font-size: 0.85em; /* Можно подкорректировать размер, если нужно */
+  line-height: 1;
+  /* Добавим немного вертикального выравнивания */
+  vertical-align: baseline;
+}
+
+/* Можно добавить общие стили для сильных выделений */
+strong {
+    /* Например, немного другой цвет */
+    /* color: #fde047; */
+    /* Или просто оставить жирным, как есть */
+}
+
+
+/* Стили для мобильных кнопок (MobileControls.css или index.css) */
+
+.mobileButton {
+  /* Размеры и форма */
+  width: 65px; /* Немного уменьшил для тачскринов */
+  height: 65px;
+  border-radius: 50%; /* Круглые */
+
+  /* Внешний вид */
+  background-color: rgba(200, 200, 200, 0.5); /* Полупрозрачный серый */
+  border: 2px solid rgba(255, 255, 255, 0.6); /* Светлая граница */
+  color: white; /* Цвет стрелки */
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4); /* Тень */
+
+  /* Текст и выравнивание */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 30px; /* Размер стрелки */
+  font-weight: bold; /* Жирная стрелка */
+
+  /* Поведение */
+  cursor: pointer; /* Курсор для десктопа */
+  user-select: none; /* Запрет выделения текста */
+  -webkit-tap-highlight-color: transparent; /* Убираем подсветку при тапе на iOS */
+  pointer-events: auto; /* Кнопка должна ловить события */
+
+  /* Плавный переход для эффекта нажатия */
+  transition: background-color 0.05s ease-out, transform 0.05s ease-out;
+}
+
+/* Стили для кнопки прыжка (больший размер) */
+.mobileButton.jumpButton {
+  width: 75px; /* Больше */
+  height: 75px;
+  font-size: 40px; /* Стрелка больше */
+}
+
+/* Стиль для АКТИВНОЙ (нажатой) кнопки */
+.mobileButton.active {
+  background-color: rgba(255, 255, 255, 0.7); /* Становится светлее */
+  transform: scale(0.95); /* Немного уменьшается */
+}
+
+/* Можно добавить стили при наведении для десктопа, если хотите */
+/* @media (hover: hover) {
+  .mobileButton:hover {
+    background-color: rgba(220, 220, 220, 0.6);
+  }
+  .mobileButton.active:hover {
+      background-color: rgba(255, 255, 255, 0.7); // Остается такой же при наведении и нажатии
+  }
+} */

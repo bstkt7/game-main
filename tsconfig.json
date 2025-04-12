@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    // ... другие опции
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx", // <-- Вот эта строка важна! Должно быть "react-jsx"
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // Добавим base URL и paths, если их нет (иногда помогает с разрешением модулей)
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"] // Пример алиаса для путей
+    }
+  },
+  "include": ["src", "vite.config.ts"], // Убедитесь, что vite.config.ts включен
+}
