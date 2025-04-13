@@ -48,7 +48,8 @@ interface PipeConfigDefinition {
     depth: number;
     seriesMinSpacing: number;
     seriesMaxSpacing: number;
-    width?: number; // Необязательная ширина для расчетов, если displayWidth недоступен
+    width?: number;
+    height?: number; // Необязательная ширина для расчетов, если displayWidth недоступен
 }
 
 // Тип для Настроек Платформ
@@ -315,8 +316,8 @@ export const GameConfig: GameConfigDefinition = {
     cleanupBuffer: 500, // px
 
     player: {
-        scale: 0.3,
-        moveSpeed: 220, // Увеличена скорость для динамики
+        scale: 0.4,
+        moveSpeed: 250, // Увеличена скорость для динамики
         jumpSpeed: -550,            // Увеличен прыжок
         stompBounceSpeed: -380,     // Немного увеличен отскок
         gravityY: 1000,             // Нормальная гравитация для игрока
@@ -333,34 +334,35 @@ export const GameConfig: GameConfigDefinition = {
         // Анимации - Скорость
         runFrameRate: 12,
         jumpFrameRate: 15,
-        idleFrameRate: 6,
+        idleFrameRate: 12,
         // Геймплей
         allowDoubleJump: true,
         initialLives: 5,
-        maxLives: 9,
+        maxLives: 10,
         invulnerabilityDuration: 1800, // Увеличена неуязвимость
         powerUpDuration: 10000,       // 10 секунд бонуса
-        powerUpScaleMultiplier: 1.0, // Без изменения размера
-        powerUpJumpMultiplier: 1.3, // Прыгает на 30% выше/сильнее
+        powerUpScaleMultiplier: 1.5, // Без изменения размера
+        powerUpJumpMultiplier: 1.5, // Прыгает на 30% выше/сильнее
     },
 
     ground: {
-        width: 71, // Примерная ширина тайла земли (изменено для примера)
-        height: 71, // Примерная высота тайла земли (изменено для примера)
-        top: 529, // gameHeight - height = 600 - 71
+        width: 77, // Примерная ширина тайла земли (изменено для примера)
+        height: 77, // Примерная высота тайла земли (изменено для примера)
+        top: 532, // gameHeight - height = 600 - 71
         depth: 5,
     },
 
     pipe: {
-        scale: 0.25, // Немного увеличены трубы
+        scale: 0.23, // Немного увеличены трубы
         depth: 6,
-        seriesMinSpacing: 120, // Больше разброс
-        seriesMaxSpacing: 280,
-        width: 55, // Примерная ширина спрайта трубы
+        seriesMinSpacing: 200, // Больше разброс
+        seriesMaxSpacing: 300,
+        width: 55,
+        height: 70 // Примерная ширина спрайта трубы
     },
 
     platform: {
-        scale: 0.3, // Немного увеличены платформы
+        scale: 0.27, // Немного увеличены платформы
         depth: 7,
         minYAboveGround: 70,
         maxYAboveGround: 240, // Выше максимальная высота
@@ -379,11 +381,11 @@ export const GameConfig: GameConfigDefinition = {
         depth: 8,
         minCount: 3,
         maxCount: 7, // Может быть больше блоков
-        spacing: 65,
-        heightAboveGround: 130,
+        spacing: 49,
+        heightAboveGround: 110,
         bonusChance: 0.30, // 30% шанс на бонус
-        bumpHeight: 9,
-        bumpDuration: 90, // ms
+        bumpHeight: 20,
+        bumpDuration: 200, // ms
     },
 
     collectibles: {
@@ -392,8 +394,8 @@ export const GameConfig: GameConfigDefinition = {
             depth: 9,
             swingAngle: 18,
             swingSpeed: 900,
-            magnetRange: 120, // Больше радиус притяжения
-            magnetSpeed: 700, // Быстрее притягиваются
+            magnetRange: 200, // Больше радиус притяжения
+            magnetSpeed: 1200, // Быстрее притягиваются
             collectDistance: 25,
             cutsceneThreshold: 50,
         },
@@ -411,12 +413,12 @@ export const GameConfig: GameConfigDefinition = {
 
     // --- ШАНСЫ ВРАГОВ (СИЛЬНО УВЕЛИЧЕНЫ ДЛЯ ТЕСТА) ---
     enemy: {
-        pipeSpawnBaseChance: 0.8,           // 80% шанс у трубы
+        pipeSpawnBaseChance: 0.5,           // 80% шанс у трубы
         pipeSpawnDifficultyFactor: 0.1,     // +10% за ед. сложности
         pipeSeriesSpawnBaseChance: 0.9,     // 90% шанс в серии труб
         pipeSeriesSpawnDifficultyFactor: 0.1,
         elevatedSpawnBaseChance: 0.85,      // 85% шанс на платформах
-        elevatedSpawnDifficultyFactor: 0.1,
+        elevatedSpawnDifficultyFactor: 0.8,
         // -------------------------------------------
         zil: {
             depth: 12, // Позади игрока, но выше платформ/труб/земли
@@ -425,19 +427,19 @@ export const GameConfig: GameConfigDefinition = {
             shootCooldown: 2300,
             types: ['zil', 'zil_fast', 'zil_big'],
             speeds: [50, 85, 35], // ЗИЛы чуть быстрее
-            scales: [0.38, 0.38, 0.50], // Большой ЗИЛ заметнее
+            scales: [0.38, 0.48, 0.58], // Большой ЗИЛ заметнее
         },
         cruzak: {
             depth: 10, // Та же глубина, что у ЗИЛа
-            scale: 0.45, // Чуть больше
+            scale: 0.09, // Чуть больше
             speed: 30,
             patrolRange: 130,
             spawnThreshold: 0,          // <-- 0 для теста (спавнится сразу)
-            spawnChanceAfterThreshold: 0.7, // <-- 70% шанс для теста
+            spawnChanceAfterThreshold: 0.5, // <-- 70% шанс для теста
         },
         dog: {
             depth: 11, // Та же глубина
-            scale: 0.32,
+            scale: 0.14,
             speed: 200, // Очень быстрые
             spawnChance: 0.75,        // <-- 75% шанс для теста
             animKey: 'dog-run',
@@ -478,8 +480,8 @@ export const GameConfig: GameConfigDefinition = {
         count: 0, // Больше облаков
         minY: 40,
         maxY: 280,
-        minScale: 0.3, // Облака чуть крупнее
-        maxScale: 0.9,
+        minScale: 0.05, // Облака чуть крупнее
+        maxScale: 0.25,
         minAlpha: 0.5,
         maxAlpha: 0.85,
         minScroll: 0.08,
@@ -531,7 +533,7 @@ export const GameConfig: GameConfigDefinition = {
         platforms: 45,
         blocks: 35,
         zils: 12,
-        cruzaks: 6,
+        cruzaks: 40,
         dogs: 10,
         poops: 18,
         gvozdiki: 60,
@@ -556,9 +558,18 @@ export const GameConfig: GameConfigDefinition = {
         gvozd_social: 0.9,
         photo_sound: 0.8
     },
+
+    
 };
 
-// --- Экспорт Типов ---
+export const SceneKeys = {
+    GvozdScene: 'GvozdScene',
+    TransitionScene: 'TransitionScene',
+    CaveScene: 'CaveScene',
+    // StartScreen: 'StartScreen', // Если сделаете сценой
+    // GameOverScreen: 'GameOverScreen' // Если сделаете сценой
+} as const; // 'as const' для строгих типов
+
+// --- Экспорт Типов (остается как было) ---
 export type GameConfigType = typeof GameConfig;
 export type PlayerConfigType = typeof GameConfig.player;
-// export type EnemyConfigType = typeof GameConfig.enemy; // Можно экспортировать при необходимости

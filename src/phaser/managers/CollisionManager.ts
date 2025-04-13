@@ -2,25 +2,29 @@ import Phaser from 'phaser';
 import { PlayerController } from './PlayerController';
 import { EnemyManager } from './EnemyManager';
 import { CollectiblesManager } from './CollectiblesManager';
-import { GameConfig } from '../config/GameConfig'; // Import for player bounce
+import { GameConfig } from '../config/GameConfig';
+// Убираем импорт GvozdScene, так как используем Phaser.Scene
+// import { GvozdScene } from '../GvozdScene';
 
 export class CollisionManager {
+    // !!!!! ИСПРАВЛЕНО: Тип сцены изменен на Phaser.Scene !!!!!
     private scene: Phaser.Scene;
     private playerController: PlayerController;
     private enemyManager: EnemyManager;
     private collectiblesManager: CollectiblesManager;
 
-    constructor(
-        scene: Phaser.Scene,
-        playerController: PlayerController,
-        enemyManager: EnemyManager,
-        collectiblesManager: CollectiblesManager
-    ) {
-        this.scene = scene;
-        this.playerController = playerController;
-        this.enemyManager = enemyManager;
-        this.collectiblesManager = collectiblesManager;
-    }
+        constructor(
+            // !!!!! ИСПРАВЛЕНО: Тип сцены изменен на Phaser.Scene !!!!!
+            scene: Phaser.Scene,
+            playerController: PlayerController,
+            enemyManager: EnemyManager,
+            collectiblesManager: CollectiblesManager
+        ) {
+            this.scene = scene;
+            this.playerController = playerController;
+            this.enemyManager = enemyManager;
+            this.collectiblesManager = collectiblesManager;
+        }
 
     // Setup all collisions (called once in scene create)
     public setupCollisions(groups: {
@@ -29,7 +33,7 @@ export class CollisionManager {
         pipes: Phaser.Physics.Arcade.StaticGroup,
         staticPlatforms: Phaser.Physics.Arcade.StaticGroup,
         movingPlatforms: Phaser.Physics.Arcade.Group,
-        // Blocks are handled separately in GvozdScene using worldGenerator.handlePlayerBlockHit
+        blocks: Phaser.Physics.Arcade.StaticGroup,
         zils: Phaser.Physics.Arcade.Group,
         cruzaks: Phaser.Physics.Arcade.Group,
         dogs: Phaser.Physics.Arcade.Group,
@@ -37,7 +41,7 @@ export class CollisionManager {
         gvozdiki: Phaser.Physics.Arcade.Group,
         money: Phaser.Physics.Arcade.Group,
         meteors: Phaser.Physics.Arcade.Group,
-        fireSticks: Phaser.Physics.Arcade.Group
+        // Добавьте flagpoleGroup, если нужно обрабатывать коллизии с ним здесь
     }) {
         const player = groups.player;
 
@@ -46,6 +50,15 @@ export class CollisionManager {
         this.scene.physics.add.collider(player, groups.pipes);
         this.scene.physics.add.collider(player, groups.staticPlatforms);
         this.scene.physics.add.collider(player, groups.movingPlatforms);
+        // Используем проверку типа для доступа к handleBlockHit, если он специфичен для сцены
+        this.scene.physics.add.collider(
+            player,
+            groups.blocks,
+            this.playerVsBlockHandler as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, // Явное приведение типа для уверенности
+            undefined,
+            this
+        );
+
 
         // --- Player and Hazards ---
         this.scene.physics.add.overlap(player, groups.zils, this.playerVsZilHandler, undefined, this);
@@ -53,28 +66,29 @@ export class CollisionManager {
         this.scene.physics.add.overlap(player, groups.dogs, this.playerVsDogHandler, undefined, this);
         this.scene.physics.add.overlap(player, groups.poops, this.playerVsPoopHandler, undefined, this);
         this.scene.physics.add.overlap(player, groups.meteors, this.playerVsMeteorHandler, undefined, this);
-        this.scene.physics.add.overlap(player, groups.fireSticks, this.playerVsFireStickHandler, undefined, this);
+        // Добавить коллизию с огненными палками, если нужно обрабатывать через физику (сейчас через update)
+
 
         // --- Player and Collectibles ---
         this.scene.physics.add.overlap(player, groups.gvozdiki, this.playerVsGvozdikHandler, undefined, this);
         this.scene.physics.add.overlap(player, groups.money, this.playerVsMoneyHandler, undefined, this);
 
         // --- Enemies and World ---
-        // Zils
-        this.scene.physics.add.collider(groups.zils, groups.ground);
-        this.scene.physics.add.collider(groups.zils, groups.staticPlatforms);
-        this.scene.physics.add.collider(groups.zils, groups.movingPlatforms);
-        this.scene.physics.add.collider(groups.zils, groups.pipes, this.enemyVsPipeHandler, undefined, this);
-        // Cruzaks
-        this.scene.physics.add.collider(groups.cruzaks, groups.ground);
-        this.scene.physics.add.collider(groups.cruzaks, groups.staticPlatforms);
-        this.scene.physics.add.collider(groups.cruzaks, groups.movingPlatforms);
-        this.scene.physics.add.collider(groups.cruzaks, groups.pipes, this.enemyVsPipeHandler, undefined, this);
-        // Dogs
-        this.scene.physics.add.collider(groups.dogs, groups.ground);
-        this.scene.physics.add.collider(groups.dogs, groups.staticPlatforms);
-        this.scene.physics.add.collider(groups.dogs, groups.movingPlatforms);
-        this.scene.physics.add.collider(groups.dogs, groups.pipes); // Dogs turn on pipes like other enemies
+        const enemyGroups = [groups.zils, groups.cruzaks, groups.dogs];
+        //const worldGroups = [groups.ground, groups.staticPlatforms, groups.movingPlatforms, groups.pipes];
+
+        enemyGroups.forEach(enemyGroup => {
+             if(!enemyGroup) return; // Проверка на случай, если группа не передана
+             this.scene.physics.add.collider(enemyGroup, groups.ground);
+             this.scene.physics.add.collider(enemyGroup, groups.staticPlatforms);
+             this.scene.physics.add.collider(enemyGroup, groups.movingPlatforms);
+             // Коллизия с трубами (для разворота)
+             this.scene.physics.add.collider(enemyGroup, groups.pipes, this.enemyVsPipeHandler, undefined, this);
+             // Коллизия врагов между собой (опционально)
+             // this.scene.physics.add.collider(enemyGroup, enemyGroup);
+        });
+
+
         // Meteors
         this.scene.physics.add.collider(groups.meteors, groups.ground, this.meteorVsGroundHandler, undefined, this);
         this.scene.physics.add.collider(groups.meteors, groups.staticPlatforms, this.meteorVsGroundHandler, undefined, this);
@@ -86,23 +100,64 @@ export class CollisionManager {
 
     // --- Collision Handlers (private) ---
 
+    private playerVsBlockHandler(
+        playerObj: Phaser.Types.Physics.Arcade.GameObjectWithBody | Phaser.Tilemaps.Tile,
+        blockObj: Phaser.Types.Physics.Arcade.GameObjectWithBody | Phaser.Tilemaps.Tile
+    ) {
+        // Приводим типы внутри для удобства, если уверены, что это спрайты
+        const player = playerObj as Phaser.Physics.Arcade.Sprite;
+        const block = blockObj as Phaser.Physics.Arcade.Sprite;
+
+        // Проверяем, что это действительно спрайты с телами
+        if (!player?.active || !block?.active || !player.body || !block.body || !(player.body instanceof Phaser.Physics.Arcade.Body) || !(block.body instanceof Phaser.Physics.Arcade.StaticBody)) {
+            return;
+        }
+
+        const playerBody = player.body;
+
+        // Удар головой снизу
+        if (playerBody.blocked.up) {
+            if (block.getData('isAnimating')) { return; }
+            block.setData('isAnimating', true);
+            this.scene.events.emit('requestSoundPlay', 'blockHit');
+
+            const originalY = block.y;
+            this.scene.tweens.add({
+                targets: block,
+                y: originalY - GameConfig.blocks.bumpHeight,
+                duration: GameConfig.blocks.bumpDuration / 2,
+                yoyo: true,
+                ease: 'Power1',
+                onComplete: () => {
+                    block.setData('isAnimating', false);
+                    if (typeof (this.scene as any).handleBlockHit === 'function') {
+                        (this.scene as any).handleBlockHit(block);
+                    } else {
+                        console.warn('Scene does not have handleBlockHit method!');
+                    }
+                }
+            });
+            playerBody.velocity.y = 10; // Отталкиваем игрока немного вниз
+        }
+    }
+
+
+
     private playerVsZilHandler(playerObj: any, zilObj: any) {
         const player = playerObj as Phaser.Physics.Arcade.Sprite;
         const zil = zilObj as Phaser.Physics.Arcade.Sprite;
         if (!player.active || !zil.active || !player.body || !zil.body || zil.getData('isDead') || !this.playerController.canBeHurt()) return;
 
-        const playerBottom = player.body.bottom;
-        const zilTop = zil.body.top;
-        const playerVelocityY = player.body.velocity.y;
+        const playerBody = player.body as Phaser.Physics.Arcade.Body;
+        const zilBody = zil.body as Phaser.Physics.Arcade.Body;
 
-        // Check if player is falling onto the zil (stomp)
-        if (playerVelocityY > 50 && playerBottom <= zilTop + 15) { // 15px threshold for stomp
-            this.enemyManager.handleZilStomped(zil);
+        // Проверка на прыжок сверху (stomp)
+        if (playerBody.velocity.y > 50 && playerBody.bottom <= zilBody.top + 15) { // Условие прыжка сверху
+            this.enemyManager.handleZilStomped(zil); // Обработка в EnemyManager
             const bounceMultiplier = this.playerController.isPlayerPoweredUp() ? GameConfig.player.powerUpJumpMultiplier : 1;
-            // FIX: Use the correct stompBounceSpeed property from GameConfig
-            player.setVelocityY(GameConfig.player.stompBounceSpeed * bounceMultiplier);
-            this.scene.events.emit('requestSoundPlay', 'enemyStomp'); // Play stomp sound via event
-        } else {
+            playerBody.setVelocityY(GameConfig.player.stompBounceSpeed * bounceMultiplier); // Отскок
+            this.scene.events.emit('requestSoundPlay', 'enemyStomp'); // Звук через событие
+        } else { // Иначе - урон игроку
             this.playerController.applyDamage();
         }
     }
@@ -110,18 +165,16 @@ export class CollisionManager {
     private playerVsCruzakHandler(playerObj: any, cruzakObj: any) {
          const player = playerObj as Phaser.Physics.Arcade.Sprite;
          const cruzak = cruzakObj as Phaser.Physics.Arcade.Sprite;
-         if (!player.active || !cruzak.active || !player.body || !cruzak.body || !this.playerController.canBeHurt()) return;
-         // console.log("Collision with Cruzer!");
+         // Крузака нельзя убить прыжком, всегда урон
+         if (!player.active || !cruzak.active || !player.body || !cruzak.body || cruzak.getData('isDead') || !this.playerController.canBeHurt()) return;
          this.playerController.applyDamage();
-         // Cruzer is heavy, maybe stronger shake
-         // this.scene.cameras.main.shake(120, 0.006);
     }
 
     private playerVsDogHandler(playerObj: any, dogObj: any) {
         const player = playerObj as Phaser.Physics.Arcade.Sprite;
         const dog = dogObj as Phaser.Physics.Arcade.Sprite;
-        if (!player.active || !dog.active || !player.body || !dog.body || !this.playerController.canBeHurt()) return;
-        // console.log("Collision with Dog!");
+        // Собаку нельзя убить прыжком, всегда урон
+        if (!player.active || !dog.active || !player.body || !dog.body || dog.getData('isDead') || !this.playerController.canBeHurt()) return;
         this.playerController.applyDamage();
     }
 
@@ -129,57 +182,46 @@ export class CollisionManager {
          const player = playerObj as Phaser.Physics.Arcade.Sprite;
          const poop = poopObj as Phaser.Physics.Arcade.Sprite;
          if (!player.active || !poop.active || !this.playerController.canBeHurt()) return;
-         // console.log("Hit by Poop!");
          this.playerController.applyDamage();
-         this.enemyManager.handlePoopHit(poop); // Let EnemyManager handle poop destruction/effect
+         this.enemyManager.handlePoopHit(poop); // Уничтожаем какашку
      }
 
-     // FIX: Prefixed unused parameter
      private playerVsGvozdikHandler(_playerObj: any, gvozdikObj: any) {
         const gvozdik = gvozdikObj as Phaser.Physics.Arcade.Sprite;
-         // Prevent collection if already being attracted (prevents double count)
-         if (!gvozdik.active || gvozdik.getData('isAttracted')) return;
-         this.collectiblesManager.handleGvozdikCollected(gvozdik, true); // Pass true to show visual effect
+        if (!gvozdik.active || gvozdik.getData('isAttracted')) return; // Не собираем, если уже притягивается
+        this.collectiblesManager.handleGvozdikCollected(gvozdik, true); // Передаем в CollectiblesManager
      }
 
-     // FIX: Prefixed unused parameter
      private playerVsMoneyHandler(_playerObj: any, moneyObj: any) {
          const money = moneyObj as Phaser.Physics.Arcade.Sprite;
          if (!money.active) return;
-         this.collectiblesManager.handleMoneyCollected(money);
+         this.collectiblesManager.handleMoneyCollected(money); // Передаем в CollectiblesManager
      }
 
     private playerVsMeteorHandler(playerObj: any, meteorObj: any) {
          const player = playerObj as Phaser.Physics.Arcade.Sprite;
          const meteor = meteorObj as Phaser.Physics.Arcade.Sprite;
          if (!player.active || !meteor.active || !this.playerController.canBeHurt()) return;
-         // console.log("Player hit by Meteor!");
          this.playerController.applyDamage();
-         this.enemyManager.handleMeteorImpact(meteor); // Meteor explodes on impact
+         this.enemyManager.handleMeteorImpact(meteor); // Обработка взрыва метеора
     }
 
-    private playerVsFireStickHandler(playerObj: any, fireStickObj: any) {
-        const player = playerObj as Phaser.Physics.Arcade.Sprite;
-        const fireStick = fireStickObj as Phaser.GameObjects.Sprite; // It's likely a GO Sprite, not physics sprite
-        if (!player.active || !fireStick.active || !this.playerController.canBeHurt()) return;
-        // console.log("Player hit by Fire Stick!");
-        this.playerController.applyDamage();
-        // Optional: Add visual/sound effect for burn
-        // this.scene.events.emit('requestSoundPlay', 'burnSound'); // Need to load 'burnSound'
-    }
-
-    // FIX: Prefixed unused parameter
-     private enemyVsPipeHandler(enemyObj: any, _pipeObj: any) {
+    // Обработчик столкновения врага с трубой (для разворота)
+    private enemyVsPipeHandler(enemyObj: any, _pipeObj: any) {
         const enemy = enemyObj as Phaser.Physics.Arcade.Sprite;
-        // Delegate to EnemyManager to handle turning logic
-        this.enemyManager.handleEnemyPipeCollision(enemy);
-     }
+        // Передаем управление разворотом в EnemyManager
+        if (enemy.active && !enemy.getData('isDead') && this.enemyManager) {
+            this.enemyManager.handleEnemyPipeCollision(enemy);
+        }
+    }
 
-    // FIX: Prefixed unused parameter
+    // Обработчик столкновения метеора с землей/платформами/трубами
     private meteorVsGroundHandler(meteorObj: any, _groundObj: any) {
         const meteor = meteorObj as Phaser.Physics.Arcade.Sprite;
         if (!meteor.active) return;
-        // Let EnemyManager handle impact effect and destruction
-        this.enemyManager.handleMeteorImpact(meteor);
+        // Передаем управление эффектом и уничтожением в EnemyManager
+        if (this.enemyManager) {
+            this.enemyManager.handleMeteorImpact(meteor);
+        }
     }
 }

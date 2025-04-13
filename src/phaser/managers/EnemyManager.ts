@@ -1,11 +1,10 @@
 import Phaser from 'phaser';
-// Убедитесь, что GameConfig импортируется ПРАВИЛЬНО
 import { GameConfig } from '../config/GameConfig';
 import { PlayerController } from './PlayerController';
 
 export class EnemyManager {
     private scene: Phaser.Scene;
-    private config = GameConfig; // Используем импортированный GameConfig
+    private config = GameConfig;
     // Группы врагов
     private zils: Phaser.Physics.Arcade.Group;
     private cruzaks: Phaser.Physics.Arcade.Group;
@@ -16,6 +15,8 @@ export class EnemyManager {
     private playerController: PlayerController;
     // Состояние
     private currentDifficulty: number = 1;
+    // Минимальная дистанция между врагами одного типа при спавне в секции
+    private minSectionSpawnDistance: number = 150; // Уменьшено для большей плотности
 
     constructor(
         scene: Phaser.Scene,
@@ -36,26 +37,22 @@ export class EnemyManager {
         this.meteors = groups.meteors;
         this.playerController = playerController;
 
-        // Создаем анимации при инициализации
         this.createAnimations();
         console.log("EnemyManager initialized.");
     }
 
-    // Сброс состояния (сложности)
-     public resetState() {
+    public resetState() {
         this.currentDifficulty = 1;
         console.log("Enemy Manager state reset (difficulty = 1).");
     }
 
-    // Установка текущей сложности (вызывается извне, например, WorldGenerator)
     public setCurrentDifficulty(difficulty: number) {
         this.currentDifficulty = Phaser.Math.Clamp(difficulty, 1, this.config.difficultyScaling.maxDifficulty);
-         // console.log(`[EnemyManager] Difficulty updated to: ${this.currentDifficulty.toFixed(2)}`); // Лог изменения сложности
+        // Убрал лог сложности здесь, чтобы не спамить консоль
+        // console.log(`[EnemyManager] Difficulty updated to: ${this.currentDifficulty.toFixed(2)}`);
     }
 
-    // Создание необходимых анимаций
     private createAnimations() {
-        // Анимация бега собаки
         if (!this.scene.anims.exists(this.config.enemy.dog.animKey)) {
             try {
                 this.scene.anims.create({
@@ -69,269 +66,421 @@ export class EnemyManager {
                  console.error(`Failed to create animation '${this.config.enemy.dog.animKey}':`, error);
             }
         }
-        // Добавить другие анимации врагов здесь, если нужно
+        // --- Добавить другие анимации врагов ---
+        // Например, если у ЗИЛов или Крузаков будут анимации
     }
 
-    // Главный метод попытки спавна врага (вызывается из WorldGenerator)
-    public trySpawnEnemyNear(x: number, context: string) {
+    // --- НОВЫЙ МЕТОД СПАВНА ВРАГОВ В СЕКЦИИ ---
+    /**
+     * Спавнит врагов в заданной секции мира.
+     * @param startX Начальная X координата секции.
+     * @param endX Конечная X координата секции.
+     */
+    public spawnEnemiesInSection(startX: number, endX: number) {
+        const sectionLength = endX - startX;
+        if (sectionLength <= 100) return; // Не спавним во врагов в слишком коротких секциях
+
         const gvozdikiCollected = this.scene.registry.get('gvozdikiCollected') ?? 0;
-        const cruzakRoll = Math.random();
-        const dogRoll = Math.random();
-        const zilRoll = Math.random();
-        const spawnMultiplier = this.getSpawnMultiplier(context);
 
-        console.log(`[EnemyManager trySpawn] Context: ${context}, PlayerX: ${x.toFixed(0)}, Gvozdiki: ${gvozdikiCollected}, Difficulty: ${this.currentDifficulty.toFixed(1)}`); // <-- ЛОГ 6
+        // Базовое количество врагов + зависимость от длины секции и сложности
+        const baseEnemyCount = 1;
+        const lengthFactor = Math.floor(sectionLength / 400); // 1 враг на каждые 400 пикселей длины
+        const difficultyFactor = Math.floor(this.currentDifficulty / 2); // 1 доп. враг за каждые 2 ед. сложности
+        const numEnemiesToSpawn = baseEnemyCount + lengthFactor + difficultyFactor;
 
-        // --- Логика Спавна Крузака ---
-        const cruzakThreshold = this.config.enemy.cruzak.spawnThreshold; // Порог из конфига
-        const canSpawnCruzak = gvozdikiCollected >= cruzakThreshold;
-        const cruzakCount = this.cruzaks.countActive(true);
-        const cruzakLimitOk = cruzakCount < this.config.maxObjects.cruzaks;
-        const cruzakBaseChance = this.config.enemy.cruzak.spawnChanceAfterThreshold;
-        // Шанс = Базовый * МножительКонтекста * МножительСложности
-        const cruzakChance = cruzakBaseChance * spawnMultiplier * (1 + (this.currentDifficulty - 1) * 0.05); // 5% прирост шанса за ед. сложности
-        console.log(`[EnemyManager Cruzer] Threshold: ${cruzakThreshold}(${canSpawnCruzak}), Count: ${cruzakCount}/${this.config.maxObjects.cruzaks}(${cruzakLimitOk}), Chance: ${cruzakChance.toFixed(3)}, Roll: ${cruzakRoll.toFixed(3)}`); // <-- ЛОГ 7
-        if (canSpawnCruzak && cruzakLimitOk && cruzakRoll < cruzakChance) {
-            console.log(`[EnemyManager Cruzer] ---> SPAWNING Cruzer near ${x.toFixed(0)}`); // <-- ЛОГ 8
-            this.spawnCruzak(x + Phaser.Math.Between(-80, 80)); // Небольшой разброс по X
-            return; // Спавним только одного крузака за раз
+        console.log(`[SpawnInSection] Area: ${startX.toFixed(0)}-${endX.toFixed(0)} (L: ${sectionLength.toFixed(0)}), Diff: ${this.currentDifficulty.toFixed(1)}, Attempting to spawn ${numEnemiesToSpawn} enemies.`);
+
+        let lastSpawnXByType = { zil: 0, cruzak: 0, dog: 0 }; // Отслеживание последнего спавна ВНУТРИ секции
+        let spawnedCount = 0;
+
+        for (let i = 0; i < numEnemiesToSpawn; i++) {
+            // Определяем доступных врагов
+            const availableTypes: ('zil' | 'cruzak' | 'dog')[] = [];
+            const canSpawnCruzak = gvozdikiCollected >= this.config.enemy.cruzak.spawnThreshold;
+
+            if (this.zils.countActive(true) < this.config.maxObjects.zils) availableTypes.push('zil');
+            if (this.dogs.countActive(true) < this.config.maxObjects.dogs) availableTypes.push('dog');
+            if (canSpawnCruzak && this.cruzaks.countActive(true) < this.config.maxObjects.cruzaks) availableTypes.push('cruzak');
+
+            if (availableTypes.length === 0) {
+                 console.log("[SpawnInSection] No available enemy types or max limits reached.");
+                 break; // Прерываем цикл, если некого спавнить
+            }
+
+            // --- Весовой Рандомный Выбор ---
+            let enemyType: 'zil' | 'cruzak' | 'dog';
+            const weightZil = 50;
+            const weightDog = 35 + 5 * (this.currentDifficulty - 1); // Шанс собаки растет со сложностью
+            const weightCruzak = (canSpawnCruzak ? 15 + 10 * (this.currentDifficulty - 1) : 0); // Шанс крузака растет, если он доступен
+            const totalWeight = weightZil + weightDog + weightCruzak;
+            const roll = Math.random() * totalWeight;
+
+            if (roll < weightZil && availableTypes.includes('zil')) {
+                enemyType = 'zil';
+            } else if (roll < weightZil + weightDog && availableTypes.includes('dog')) {
+                enemyType = 'dog';
+            } else if (availableTypes.includes('cruzak')) { // Крузак, если доступен и другие не выбраны
+                enemyType = 'cruzak';
+            } else {
+                // Запасной вариант, если что-то пошло не так с весами или доступностью
+                enemyType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+            }
+            // ---------------------------------
+
+            // Выбираем позицию, избегая слишком близкого спавна к предыдущему врагу того же типа
+            let spawnX = 0;
+            let attempts = 0;
+            const maxAttempts = 10;
+            do {
+                spawnX = Phaser.Math.Between(startX + 50, endX - 50); // Случайная позиция внутри секции (с отступами)
+                attempts++;
+            } while (Math.abs(spawnX - lastSpawnXByType[enemyType]) < this.minSectionSpawnDistance && attempts < maxAttempts);
+
+            if (attempts >= maxAttempts) {
+                 console.log(`[SpawnInSection] Could not find suitable position for ${enemyType} after ${maxAttempts} attempts.`);
+                 continue; // Пропускаем спавн этого врага
+            }
+
+            // Спавним выбранного врага
+            let spawned = false;
+            if (enemyType === 'zil') {
+                if (this.spawnZil(spawnX)) spawned = true;
+            } else if (enemyType === 'dog') {
+                if (this.spawnDog(spawnX)) spawned = true;
+            } else if (enemyType === 'cruzak') {
+                if (this.spawnCruzak(spawnX)) spawned = true;
+            }
+
+            // Обновляем позицию последнего спавна, если успешно
+            if (spawned) {
+                lastSpawnXByType[enemyType] = spawnX;
+                spawnedCount++;
+            }
         }
-
-        // --- Логика Спавна Собаки ---
-        const dogCount = this.dogs.countActive(true);
-        const dogLimitOk = dogCount < this.config.maxObjects.dogs;
-        const dogBaseChance = this.config.enemy.dog.spawnChance;
-        // Шанс = Базовый * МножительКонтекста * МножительСложности
-        const dogChance = dogBaseChance * spawnMultiplier * (1 + (this.currentDifficulty - 1) * 0.08); // 8% прирост шанса за ед. сложности
-        console.log(`[EnemyManager Dog] Count: ${dogCount}/${this.config.maxObjects.dogs}(${dogLimitOk}), Chance: ${dogChance.toFixed(3)}, Roll: ${dogRoll.toFixed(3)}`); // <-- ЛОГ 9
-        if (dogLimitOk && dogRoll < dogChance) {
-             console.log(`[EnemyManager Dog] ---> SPAWNING Dog near ${x.toFixed(0)}`); // <-- ЛОГ 10
-            this.spawnDog(x + Phaser.Math.Between(-50, 150)); // Небольшой разброс
-            // НЕ делаем return, собака может появиться вместе с ЗИЛом
-        }
-
-        // --- Логика Спавна ЗИЛа ---
-        const zilCount = this.zils.countActive(true);
-        const zilLimitOk = zilCount < this.config.maxObjects.zils;
-        // Шанс = Базовый (из трубы) * МножительКонтекста * МножительСложности
-        const zilChance = (this.config.enemy.pipeSpawnBaseChance) * spawnMultiplier * (1 + (this.currentDifficulty - 1) * 0.1); // 10% прирост шанса
-         console.log(`[EnemyManager Zil] Count: ${zilCount}/${this.config.maxObjects.zils}(${zilLimitOk}), Chance: ${zilChance.toFixed(3)}, Roll: ${zilRoll.toFixed(3)}`); // <-- ЛОГ 11
-        if (zilLimitOk && zilRoll < zilChance) {
-             console.log(`[EnemyManager Zil] ---> SPAWNING Zil near ${x.toFixed(0)}`); // <-- ЛОГ 12
-            this.spawnZil(x + Phaser.Math.Between(-80, 80)); // Небольшой разброс
-        }
+        console.log(`[SpawnInSection] Successfully spawned ${spawnedCount} enemies.`);
     }
+    // --- КОНЕЦ НОВОГО МЕТОДА СПАВНА ---
 
-    // Получение множителя шанса спавна в зависимости от контекста генерации
-    private getSpawnMultiplier(context: string): number {
-        switch(context) {
-            case 'pipe_series': return 0.8;
-            case 'complex': return 1.2;
-            case 'elevated_platform_series': return 1.1;
-            case 'pipe': return 1.0;
-            case 'staggered_platform_static': return 0.9;
-            case 'staggered_platform_moving': return 1.0;
-            case 'moving_platform': return 1.1;
-            case 'gap_moving_end': return 1.3; // Повышенный шанс после сложного участка
-            default: return 1.0;
-        }
-    }
+    // (Старый метод trySpawnEnemyNear УДАЛЕН)
 
-    // --- Методы Спавна Конкретных Врагов ---
+
+
+    // --- Методы Спавна Конкретных Врагов (С КОРРЕКЦИЕЙ ПОЗИЦИИ Y) ---
 
     public spawnZil(x: number): Phaser.Physics.Arcade.Sprite | null {
-        console.log(`[SpawnZil] Attempting spawn at ${x.toFixed(0)}`); // Лог входа
         if (this.zils.countActive(true) >= this.config.maxObjects.zils) {
-            console.log("[SpawnZil] Limit reached."); return null;
+            // console.log("[SpawnZil] Limit reached."); // Можно раскомментировать для отладки лимитов
+            return null;
         }
         try {
-            // ... (логика выбора типа ЗИЛа без изменений) ...
+            // Выбор типа ЗИЛа (оставляем как было)
             const difficultyFactor = Math.min(1, (this.currentDifficulty - 1) / (this.config.difficultyScaling.maxDifficulty - 1));
-            const typeRoll = Math.random(); let typeIndex = 0;
-            const bigThreshold = 0.7 + 0.2 * difficultyFactor; const fastThreshold = 0.4 + 0.3 * difficultyFactor;
-            if (typeRoll > bigThreshold) typeIndex = 2; else if (typeRoll > fastThreshold) typeIndex = 1;
+            const typeRoll = Math.random();
+            let typeIndex = 0;
+            const bigThreshold = 0.7 + 0.2 * difficultyFactor;
+            const fastThreshold = 0.4 + 0.3 * difficultyFactor;
+            if (typeRoll > bigThreshold) typeIndex = 2;
+            else if (typeRoll > fastThreshold) typeIndex = 1;
             typeIndex = Phaser.Math.Clamp(typeIndex, 0, this.config.enemy.zil.types.length - 1);
-            const zilType = this.config.enemy.zil.types[typeIndex]; const baseSpeed = this.config.enemy.zil.speeds[typeIndex];
-            const zilSpeed = baseSpeed * (1 + (this.currentDifficulty - 1) * 0.05); const zilScale = this.config.enemy.zil.scales[typeIndex];
-            const zilDepth = this.config.enemy.zil.depth; const yPos = this.config.ground.top - 30;
+            const zilType = this.config.enemy.zil.types[typeIndex];
+            const baseSpeed = this.config.enemy.zil.speeds[typeIndex];
+            const zilSpeed = baseSpeed * (1 + (this.currentDifficulty - 1) * 0.05);
+            const zilScale = this.config.enemy.zil.scales[typeIndex];
+            const zilDepth = this.config.enemy.zil.depth;
+
+            // --- ИЗМЕНЕНО: Позиция Y ---
+            // Спавним с центром X на заданной координате, Y на уровне земли
+            // Физика и гравитация опустят его на землю. Origin(0.5, 1) разместит ноги на Y
+            const yPos = this.config.ground.top;
+            // ---------------------------
 
             const zil = this.zils.create(x, yPos, zilType) as Phaser.Physics.Arcade.Sprite;
-            if (!zil) { throw new Error("Failed to create Zil sprite object."); }
+            if (!zil) throw new Error("Failed to create Zil sprite object.");
 
-            zil.setScale(zilScale).setDepth(zilDepth).setCollideWorldBounds(false).setBounce(0).setGravityY(this.config.gravity);
-            const initialDirection = -1; zil.setVelocityX(initialDirection * zilSpeed);
+            // --- ИЗМЕНЕНО: Ставим Origin Y в 1 ---
+            zil.setOrigin(0.5, 1); // Важно для позиционирования по Y
+            // -----------------------------------
+
+            zil.setScale(zilScale)
+                .setDepth(zilDepth)
+                .setCollideWorldBounds(false) // Пусть выходят за пределы карты, если нужно
+                .setBounce(0)
+                .setGravityY(this.config.gravity) // Гравитация притянет к земле
+                .setVisible(true);
+
+            const initialDirection = (Math.random() < 0.5) ? 1 : -1; // Случайное начальное направление
+            zil.setVelocityX(initialDirection * zilSpeed);
+            zil.setFlipX(initialDirection > 0); // Поворачиваем спрайт в нужную сторону
+
             zil.setDataEnabled();
             const patrolRange = this.config.enemy.zil.patrolRange * (1 + (this.currentDifficulty - 1) * 0.08);
             zil.setData({ startX: x, range: patrolRange, speed: zilSpeed, direction: initialDirection, type: zilType, isDead: false, lastShotTime: 0 });
 
-            if(zil.body instanceof Phaser.Physics.Arcade.Body) {
-                 zil.body.setSize(zil.width * 0.7, zil.height * 0.8); zil.body.setOffset(zil.width * 0.15, zil.height * 0.1);
+            // Настройка физического тела (можно подкорректировать под новый origin)
+            if (zil.body instanceof Phaser.Physics.Arcade.Body) {
+                 const bodyWidth = zil.width * 0.7;
+                 const bodyHeight = zil.height * 0.9; // Немного уменьшим высоту тела, чтобы ноги касались земли
+                 zil.body.setSize(bodyWidth, bodyHeight);
+                 // Offset Y теперь отсчитывается от НИЗА спрайта из-за originY=1
+                 zil.body.setOffset(zil.width * 0.15, zil.height * 0.05); // Смещаем чуть вверх от низа
             }
-             console.log(`[SpawnZil] SUCCESS - Type: ${zilType}, Speed: ${zilSpeed.toFixed(1)}`); // Лог успеха
+            console.log(`[SpawnZil] SUCCESS - Type: ${zilType}, Speed: ${zilSpeed.toFixed(1)}, Position: (${x.toFixed(0)}, ${yPos.toFixed(0)})`);
             return zil;
         } catch (error) {
-            console.error('[SpawnZil] Error:', error); return null;
+            console.error('[SpawnZil] Error:', error);
+            return null;
         }
     }
 
     public spawnCruzak(x: number): Phaser.Physics.Arcade.Sprite | null {
-         console.log(`[SpawnCruzak] Attempting spawn at ${x.toFixed(0)}`); // Лог входа
-        if (this.cruzaks.countActive(true) >= this.config.maxObjects.cruzaks) {
-             console.log("[SpawnCruzak] Limit reached."); return null;
-        }
-        try {
-            // ... (логика создания крузака без изменений) ...
-            const cruzakSpeed = this.config.enemy.cruzak.speed * (1 + (this.currentDifficulty - 1) * 0.05);
-            const cruzakScale = this.config.enemy.cruzak.scale; const cruzakDepth = this.config.enemy.cruzak.depth; const yPos = this.config.ground.top - 30;
-            const cruzak = this.cruzaks.create(x, yPos, 'cruzak') as Phaser.Physics.Arcade.Sprite;
-             if (!cruzak) { throw new Error("Failed to create Cruzer sprite object."); }
-            cruzak.setScale(cruzakScale).setDepth(cruzakDepth).setCollideWorldBounds(false).setBounce(0).setGravityY(this.config.gravity);
-            const initialDirection = -1; cruzak.setVelocityX(initialDirection * cruzakSpeed);
-            cruzak.setDataEnabled();
-            const patrolRange = this.config.enemy.cruzak.patrolRange * (1 + (this.currentDifficulty - 1) * 0.08);
-            cruzak.setData({ startX: x, range: patrolRange, speed: cruzakSpeed, direction: initialDirection, type: 'cruzak', isDead: false });
-            if(cruzak.body instanceof Phaser.Physics.Arcade.Body) {
-                 cruzak.body.setSize(cruzak.width * 0.75, cruzak.height * 0.8); cruzak.body.setOffset(cruzak.width * 0.12, cruzak.height * 0.1);
-            }
-             console.log(`[SpawnCruzak] SUCCESS - Speed: ${cruzakSpeed.toFixed(1)}`); // Лог успеха
-            return cruzak;
-        } catch (error) {
-            console.error('[SpawnCruzak] Error:', error); return null;
-        }
+         if (this.cruzaks.countActive(true) >= this.config.maxObjects.cruzaks) return null;
+         try {
+             const cruzakSpeed = this.config.enemy.cruzak.speed * (1 + (this.currentDifficulty - 1) * 0.05);
+             const cruzakScale = this.config.enemy.cruzak.scale;
+             const cruzakDepth = this.config.enemy.cruzak.depth;
+             // --- ИЗМЕНЕНО: Позиция Y ---
+             const yPos = this.config.ground.top;
+             // ---------------------------
+             const cruzak = this.cruzaks.create(x, yPos, 'cruzak') as Phaser.Physics.Arcade.Sprite;
+             if (!cruzak) throw new Error("Failed to create Cruzer sprite object.");
+
+             // --- ИЗМЕНЕНО: Ставим Origin Y в 1 ---
+             cruzak.setOrigin(0.5, 1);
+             // -----------------------------------
+
+             cruzak.setScale(cruzakScale)
+                .setDepth(cruzakDepth)
+                .setCollideWorldBounds(false)
+                .setBounce(0)
+                .setGravityY(this.config.gravity);
+
+             const initialDirection = (Math.random() < 0.5) ? 1 : -1;
+             cruzak.setVelocityX(initialDirection * cruzakSpeed);
+             cruzak.setFlipX(initialDirection > 0);
+
+             cruzak.setDataEnabled();
+             const patrolRange = this.config.enemy.cruzak.patrolRange * (1 + (this.currentDifficulty - 1) * 0.08);
+             cruzak.setData({ startX: x, range: patrolRange, speed: cruzakSpeed, direction: initialDirection, type: 'cruzak', isDead: false });
+
+             // Настройка тела под новый origin
+             if(cruzak.body instanceof Phaser.Physics.Arcade.Body) {
+                  const bodyWidth = cruzak.width * 0.75;
+                  const bodyHeight = cruzak.height * 0.85;
+                  cruzak.body.setSize(bodyWidth, bodyHeight);
+                  cruzak.body.setOffset(cruzak.width * 0.125, cruzak.height * 0.1); // Смещаем вверх от низа
+             }
+             console.log(`[SpawnCruzer] SUCCESS - Speed: ${cruzakSpeed.toFixed(1)}`);
+             return cruzak;
+         } catch (error) {
+             console.error('[SpawnCruzer] Error:', error); return null;
+         }
     }
 
     public spawnDog(x: number): Phaser.Physics.Arcade.Sprite | null {
-        console.log(`[SpawnDog] Attempting spawn at ${x.toFixed(0)}`); // Лог входа
-        if (this.dogs.countActive(true) >= this.config.maxObjects.dogs) {
-             console.log("[SpawnDog] Limit reached."); return null;
-        }
+        if (this.dogs.countActive(true) >= this.config.maxObjects.dogs) return null;
         try {
-            // ... (логика создания собаки без изменений) ...
             const dogSpeed = this.config.enemy.dog.speed * (1 + (this.currentDifficulty - 1) * 0.1);
-            const dogScale = this.config.enemy.dog.scale; const dogDepth = this.config.enemy.dog.depth; const animKey = this.config.enemy.dog.animKey; const yPos = this.config.ground.top - 20;
+            const dogScale = this.config.enemy.dog.scale;
+            const dogDepth = this.config.enemy.dog.depth;
+            const animKey = this.config.enemy.dog.animKey;
+            // --- ИЗМЕНЕНО: Позиция Y ---
+            const yPos = this.config.ground.top;
+            // ---------------------------
             const dog = this.dogs.create(x, yPos, this.config.enemy.dog.animFrames[0]) as Phaser.Physics.Arcade.Sprite;
-             if (!dog) { throw new Error("Failed to create Dog sprite object."); }
-            dog.setScale(dogScale).setDepth(dogDepth).setCollideWorldBounds(false).setBounce(0).setGravityY(this.config.gravity);
-            if (this.scene.anims.exists(animKey)) { dog.play(animKey); } else { console.warn(`Animation key '${animKey}' not found for dog.`); }
-            dog.setVelocityX(-dogSpeed); dog.setFlipX(false);
-             if (dog.body instanceof Phaser.Physics.Arcade.Body) { dog.body.setSize(dog.width * 0.8, dog.height * 0.9); }
-            console.log(`[SpawnDog] SUCCESS - Speed: ${dogSpeed.toFixed(1)}`); // Лог успеха
+            if (!dog) throw new Error("Failed to create Dog sprite object.");
+
+            // --- ИЗМЕНЕНО: Ставим Origin Y в 1 ---
+            dog.setOrigin(0.5, 1);
+            // -----------------------------------
+
+            dog.setScale(dogScale)
+                .setDepth(dogDepth)
+                .setCollideWorldBounds(false)
+                .setBounce(0)
+                .setGravityY(this.config.gravity)
+                .setVisible(true);
+
+            if (this.scene.anims.exists(animKey)) {
+                dog.play(animKey);
+            } else { console.warn(`Animation key '${animKey}' not found for dog.`); }
+
+            const initialDirection = (Math.random() < 0.5) ? 1 : -1;
+            dog.setVelocityX(initialDirection * dogSpeed);
+            dog.setFlipX(initialDirection > 0); // Собака смотрит влево при -1, вправо при 1
+
+            // Настройка тела под новый origin
+            if (dog.body instanceof Phaser.Physics.Arcade.Body) {
+                 const bodyWidth = dog.width * 0.8;
+                 const bodyHeight = dog.height * 0.9;
+                 dog.body.setSize(bodyWidth, bodyHeight);
+                 dog.body.setOffset(dog.width * 0.1, dog.height * 0.05); // Смещаем вверх от низа
+            }
+            console.log(`[SpawnDog] SUCCESS - Speed: ${dogSpeed.toFixed(1)}`);
             return dog;
         } catch (error) {
             console.error('[SpawnDog] Error:', error); return null;
         }
     }
 
-     public shootPoop(zil: Phaser.Physics.Arcade.Sprite) {
-        // ... (код без изменений) ...
+    public shootPoop(zil: Phaser.Physics.Arcade.Sprite) {
         if (zil.getData('type') !== 'zil_big' || !zil.active || zil.getData('isDead')) return;
         if (this.poops.countActive(true) >= this.config.maxObjects.poops ) return;
-        const direction = zil.getData('direction') ?? -1; const startX = zil.x + (direction * zil.displayWidth * 0.4); const startY = zil.y - zil.displayHeight * 0.1;
+        const direction = zil.getData('direction') ?? -1;
+        // Корректируем X старта какашки относительно центра ЗИЛа
+        const startX = zil.x + (direction * zil.displayWidth * 0.3);
+        // Y старта какашки примерно на уровне середины ЗИЛа
+        const startY = zil.y - zil.displayHeight * 0.4; // Учитываем originY = 1
         const poop = this.poops.create(startX, startY, 'poop') as Phaser.Physics.Arcade.Sprite; if (!poop) return;
         poop.setScale(this.config.enemy.poop.scale).setDepth(this.config.enemy.poop.depth).setCollideWorldBounds(false);
-        poop.setVelocityX(this.config.enemy.poop.speed * direction); poop.setVelocityY(0);
+        poop.setVelocityX(this.config.enemy.poop.speed * direction); poop.setVelocityY(Phaser.Math.Between(-20, 20)); // Небольшой разброс по Y
         this.scene.time.delayedCall(this.config.enemy.poop.lifetime, () => { if (poop?.active) { poop.destroy(); } }, [], this);
-      }
+    }
 
     public spawnMeteor(): Phaser.Physics.Arcade.Sprite | null {
-         // ... (код без изменений) ...
-        if (this.meteors.countActive(true) >= this.config.maxObjects.meteors) return null;
-        const cam = this.scene.cameras.main; const spawnX = cam.worldView.x + Phaser.Math.FloatBetween(50, cam.worldView.width - 50); const spawnY = cam.worldView.y - 50;
-        const meteor = this.meteors.create(spawnX, spawnY, 'meteor') as Phaser.Physics.Arcade.Sprite; if (!meteor) return null;
-        meteor.setScale(this.config.hazards.meteor.scale).setDepth(this.config.hazards.meteor.depth).setCollideWorldBounds(false);
-        const angleDegrees = 90 + Phaser.Math.FloatBetween(-this.config.hazards.meteor.maxAngle, this.config.hazards.meteor.maxAngle); const angleRadians = Phaser.Math.DegToRad(angleDegrees);
-        const speed = Phaser.Math.Between(this.config.hazards.meteor.minSpeed, this.config.hazards.meteor.maxSpeed);
-        if (meteor.body instanceof Phaser.Physics.Arcade.Body) { this.scene.physics.velocityFromRotation(angleRadians, speed, meteor.body.velocity); meteor.body.setAngularVelocity(Phaser.Math.Between(-100, 100)); }
-        else { console.warn("Meteor missing body!"); meteor.destroy(); return null; } return meteor;
+         if (this.meteors.countActive(true) >= this.config.maxObjects.meteors) return null;
+         const cam = this.scene.cameras.main;
+         // Спавн чуть выше видимой области
+         const spawnX = cam.worldView.x + Phaser.Math.FloatBetween(50, cam.worldView.width - 50);
+         const spawnY = cam.worldView.y - 80;
+         const meteor = this.meteors.create(spawnX, spawnY, 'meteor') as Phaser.Physics.Arcade.Sprite; if (!meteor) return null;
+         meteor.setScale(this.config.hazards.meteor.scale).setDepth(this.config.hazards.meteor.depth).setCollideWorldBounds(false);
+         const angleDegrees = 90 + Phaser.Math.FloatBetween(-this.config.hazards.meteor.maxAngle, this.config.hazards.meteor.maxAngle);
+         const angleRadians = Phaser.Math.DegToRad(angleDegrees);
+         const speed = Phaser.Math.Between(this.config.hazards.meteor.minSpeed, this.config.hazards.meteor.maxSpeed);
+         if (meteor.body instanceof Phaser.Physics.Arcade.Body) {
+             // Устанавливаем и гравитацию, и начальную скорость
+             meteor.body.setGravityY(this.config.gravity * 0.5); // Пусть гравитация тоже влияет
+             this.scene.physics.velocityFromRotation(angleRadians, speed, meteor.body.velocity);
+             meteor.body.setAngularVelocity(Phaser.Math.Between(-100, 100));
+             meteor.body.setBounce(0.3); // Небольшой отскок при ударе
+         }
+         else { console.warn("Meteor missing body!"); meteor.destroy(); return null; }
+         return meteor;
     }
 
     // Обновление состояния врагов
-    public update(time: number, _delta: number) { // delta не используется
+    public update(time: number, _delta: number) {
         const playerSprite = this.playerController?.getPlayerSprite();
-        if (!playerSprite?.active) return; // Не обновляем, если игрок не активен
+        if (!playerSprite?.active) return;
 
         // Обновляем патрулирование и стрельбу ЗИЛов и Крузаков
-        this.zils.getChildren().forEach((zilGO) => {
-            if (zilGO.active && zilGO instanceof Phaser.Physics.Arcade.Sprite) { this.updateEnemyPatrolAndShoot(zilGO, time, playerSprite); } });
-        this.cruzaks.getChildren().forEach((cruzakGO) => {
-             if (cruzakGO.active && cruzakGO instanceof Phaser.Physics.Arcade.Sprite) { this.updateEnemyPatrolAndShoot(cruzakGO, time, playerSprite); } });
+        this.zils.getChildren().forEach((zilGO) => { if (zilGO.active && zilGO instanceof Phaser.Physics.Arcade.Sprite) this.updateEnemyPatrolAndShoot(zilGO, time, playerSprite); });
+        this.cruzaks.getChildren().forEach((cruzakGO) => { if (cruzakGO.active && cruzakGO instanceof Phaser.Physics.Arcade.Sprite) this.updateEnemyPatrolAndShoot(cruzakGO, time, playerSprite); });
+        // Обновляем собак (только патрулирование)
+        this.dogs.getChildren().forEach((dogGO) => { if (dogGO.active && dogGO instanceof Phaser.Physics.Arcade.Sprite) this.updateEnemyPatrol(dogGO); });
 
-        // Спавн метеоров (шанс зависит от сложности)
+        // Спавн метеоров
         const meteorSpawnChance = this.config.hazards.meteor.spawnChance * (1 + (this.currentDifficulty - 1) * 0.1);
-        // Метеоры появляются только при сложности > 1.5
-        if (this.currentDifficulty > 1.5 && Math.random() < meteorSpawnChance) { this.spawnMeteor(); }
+        if (this.currentDifficulty > 1.2 && Math.random() < meteorSpawnChance) { this.spawnMeteor(); }
 
-        // Очистка метеоров, улетевших далеко вниз
-         this.meteors.getChildren().forEach((meteorGO) => {
-            if (meteorGO instanceof Phaser.Physics.Arcade.Sprite && meteorGO.active) { if (meteorGO.y > this.scene.cameras.main.worldView.bottom + 200) { meteorGO.destroy(); } } });
+        // Очистка метеоров
+         this.meteors.getChildren().forEach((meteorGO) => { if (meteorGO instanceof Phaser.Physics.Arcade.Sprite && meteorGO.active && meteorGO.y > this.scene.cameras.main.worldView.bottom + 200) meteorGO.destroy(); });
     }
 
-    // Логика патрулирования и стрельбы для ЗИЛов/Крузаков
-    private updateEnemyPatrolAndShoot(enemy: Phaser.Physics.Arcade.Sprite, time: number, playerSprite: Phaser.GameObjects.Sprite) {
+    // Обновление патрулирования (для всех врагов)
+    private updateEnemyPatrol(enemy: Phaser.Physics.Arcade.Sprite) {
         if (!enemy.active || !(enemy.body instanceof Phaser.Physics.Arcade.Body) || enemy.getData('isDead')) return;
 
-        const startX = enemy.getData('startX') ?? enemy.x; const range = enemy.getData('range') ?? 100;
-        const speed = enemy.getData('speed') ?? 30; let direction = enemy.getData('direction') ?? -1;
+        const startX = enemy.getData('startX') ?? enemy.x;
+        const range = enemy.getData('range') ?? 100; // Используем range, если задан, иначе стандартный
+        const speed = enemy.getData('speed') ?? 30;
+        let direction = enemy.getData('direction') ?? -1;
 
         const body = enemy.body as Phaser.Physics.Arcade.Body;
-        const isBlockedLeft = body.blocked.left || body.touching.left; const isBlockedRight = body.blocked.right || body.touching.right;
+        const isBlockedLeft = body.blocked.left || body.touching.left;
+        const isBlockedRight = body.blocked.right || body.touching.right;
         const isOnFloor = body.blocked.down || body.touching.down;
 
-        // Логика разворота
-        if (!isBlockedLeft && !isBlockedRight) {
-            if (direction < 0 && enemy.x < startX - range) { direction = 1; } else if (direction > 0 && enemy.x > startX + range) { direction = -1; }
-        } else if (isBlockedRight && direction > 0) { direction = -1; } else if (isBlockedLeft && direction < 0) { direction = 1; }
-
-        // Применяем новую скорость/направление
-        if (direction !== enemy.getData('direction') || (Math.abs(body.velocity.x) < speed * 0.5 && isOnFloor)) {
-             enemy.setData('direction', direction); enemy.setVelocityX(speed * direction); enemy.setFlipX(direction > 0);
+        // Базовая логика разворота по range (если range задан и > 0)
+        if (range > 0) {
+             if (!isBlockedLeft && !isBlockedRight) { // Только если нет прямого препятствия
+                 if (direction < 0 && enemy.x < startX - range) { direction = 1; }
+                 else if (direction > 0 && enemy.x > startX + range) { direction = -1; }
+             }
         }
+        // Разворот при столкновении со стеной/препятствием
+        if (isBlockedRight && direction > 0) { direction = -1; }
+        else if (isBlockedLeft && direction < 0) { direction = 1; }
+
+        // Применяем новую скорость/направление, если оно изменилось или враг почти остановился
+        if (direction !== enemy.getData('direction') || (Math.abs(body.velocity.x) < speed * 0.5 && isOnFloor)) {
+             enemy.setData('direction', direction);
+             enemy.setVelocityX(speed * direction);
+             enemy.setFlipX(direction > 0); // Поворот спрайта
+        }
+    }
+
+
+    // Патрулирование и стрельба (для ЗИЛов/Крузаков - Крузак не стреляет)
+    private updateEnemyPatrolAndShoot(enemy: Phaser.Physics.Arcade.Sprite, time: number, playerSprite: Phaser.GameObjects.Sprite) {
+        this.updateEnemyPatrol(enemy); // Сначала общая логика патрулирования
 
         // Логика стрельбы для 'zil_big'
-        if (enemy.getData('type') === 'zil_big') {
-            const lastShotTime = enemy.getData('lastShotTime') ?? 0; const shootCooldown = this.config.enemy.zil.shootCooldown; const shootRange = this.config.enemy.zil.shootRange;
+        if (enemy.getData('type') === 'zil_big' && !enemy.getData('isDead')) {
+            const lastShotTime = enemy.getData('lastShotTime') ?? 0;
+            const shootCooldown = this.config.enemy.zil.shootCooldown;
+            const shootRange = this.config.enemy.zil.shootRange;
+            const direction = enemy.getData('direction');
+
             if (time > lastShotTime + shootCooldown) {
                 if (!playerSprite?.active || !this.playerController.canBeHurt()) return;
                 const playerDistance = Phaser.Math.Distance.Between(enemy.x, enemy.y, playerSprite.x, playerSprite.y);
+
                 if (playerDistance < shootRange) {
+                    // Стреляет, если игрок впереди и примерно на той же высоте или ниже
                     const isPlayerInFront = (direction < 0 && playerSprite.x < enemy.x) || (direction > 0 && playerSprite.x > enemy.x);
-                    const isPlayerLower = playerSprite.y > enemy.y - 50;
-                    if (isPlayerInFront && isPlayerLower) { this.shootPoop(enemy); enemy.setData('lastShotTime', time); }
+                    const isPlayerVerticallyAligned = Math.abs(playerSprite.y - (enemy.y - enemy.displayHeight * 0.5)) < enemy.displayHeight; // Игрок по высоте примерно там же, где ЗИЛ
+
+                    if (isPlayerInFront && isPlayerVerticallyAligned) {
+                         this.shootPoop(enemy);
+                         enemy.setData('lastShotTime', time);
+                         // Опционально: Заставить ЗИЛ остановиться на короткое время для выстрела
+                         // enemy.setVelocityX(0);
+                         // this.scene.time.delayedCall(300, () => {
+                         //    if (enemy.active && !enemy.getData('isDead')) {
+                         //        enemy.setVelocityX(enemy.getData('speed') * enemy.getData('direction'));
+                         //    }
+                         // }, [], this);
+                    }
                 }
             }
         }
     }
 
-     // --- Обработчики Коллизий (вызываются из CollisionManager) ---
-
      public handleZilStomped(zil: Phaser.Physics.Arcade.Sprite) {
         if (!zil || !zil.active || zil.getData('isDead')) return;
         zil.setData('isDead', true);
-        this.scene.events.emit('requestSoundPlay', 'zil_death'); // Используем событие для звука
-        if (zil.body instanceof Phaser.Physics.Arcade.Body) { zil.disableBody(false, false); }
-        zil.setVelocity(Phaser.Math.Between(-50, 50), -150); zil.setAngle(Phaser.Math.Between(-30, 30)); zil.setGravityY(this.config.gravity * 1.5);
-        this.scene.tweens.add({ targets: zil, alpha: 0, scaleY: zil.scaleY * 0.5, duration: 400, delay: 100, ease: 'Power1', onComplete: () => { if (zil.active) { zil.destroy(); } } });
+        this.scene.events.emit('requestSoundPlay', 'zil_death');
+        if (zil.body instanceof Phaser.Physics.Arcade.Body) zil.disableBody(false, false);
+        // Более простое удаление без анимации падения
+        zil.setVisible(false);
+        this.scene.time.delayedCall(100, () => { if(zil) zil.destroy(); }); // Удаляем с небольшой задержкой
+
+        // Можно добавить эффект взрыва/дыма на месте ЗИЛа
+        // const deathEffect = this.scene.add.sprite(zil.x, zil.y - zil.displayHeight*0.5, 'death_effect_texture').play('death_anim');
+        // deathEffect.on('animationcomplete', () => deathEffect.destroy());
      }
 
      public handleEnemyPipeCollision(enemy: Phaser.Physics.Arcade.Sprite) {
-        if (!enemy.active || !(enemy.body instanceof Phaser.Physics.Arcade.Body) || enemy.getData('isDead')) return;
-        const body = enemy.body as Phaser.Physics.Arcade.Body;
-        if (body.blocked.right || body.blocked.left || body.touching.left || body.touching.right) {
-            const currentDirection = enemy.getData('direction') ?? -1; const newDirection = -currentDirection; const speed = enemy.getData('speed') ?? 30;
-            enemy.setData('direction', newDirection); enemy.setVelocityX(speed * newDirection); enemy.setFlipX(newDirection > 0);
-        }
+         // Используем общую логику патрулирования, которая уже обрабатывает blocked.left/right
+         this.updateEnemyPatrol(enemy);
      }
 
      public handlePoopHit(poop: Phaser.Physics.Arcade.Sprite) {
-        if (poop?.active) { poop.destroy(); } // Просто уничтожаем какашку
+        if (poop?.active) { poop.destroy(); }
+        // Можно добавить эффект попадания какашки
      }
 
     public handleMeteorImpact(meteor: Phaser.Physics.Arcade.Sprite) {
         if (!meteor?.active) return;
-        this.scene.events.emit('requestSoundPlay', 'meteor_impact'); // Используем событие для звука
+        this.scene.events.emit('requestSoundPlay', 'meteor_impact');
+        // Эффект взрыва при ударе метеора
+        // const impactEffect = this.scene.add.sprite(meteor.x, meteor.y, 'impact_texture').play('impact_anim');
+        // impactEffect.on('animationcomplete', () => impactEffect.destroy());
+
         if (meteor.body instanceof Phaser.Physics.Arcade.Body && (meteor.body.velocity.x !== 0 || meteor.body.velocity.y !== 0)) {
             this.scene.cameras.main.shake( this.config.hazards.meteor.impactShakeDuration, this.config.hazards.meteor.impactShakeIntensity );
         }
-        meteor.destroy(); // Уничтожаем метеор
+        meteor.destroy();
     }
 }
