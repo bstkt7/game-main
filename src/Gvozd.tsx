@@ -7,12 +7,53 @@ import { CaveScene } from './phaser/CaveScene';
 import StartScreen from './components/StartScreen';
 import GameUI from './components/GameUI';
 import MobileControls from './components/MobileControls';
-import { SceneKeys, GameConfig } from './phaser/config/GameConfig';
+import { GameConfig } from './phaser/config/GameConfig';
 
 // Ключи сцен (теперь будут использоваться)
 const GVOZD_SCENE_KEY = 'GvozdScene';
 const TRANSITION_SCENE_KEY = 'TransitionScene';
-const CAVE_SCENE_KEY = 'CaveScene';
+
+const getStyles = (isMobile: boolean): { [key: string]: React.CSSProperties } => ({
+  pageWrapper: { 
+    position: 'relative', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    color: 'white', 
+    minHeight: '100vh', 
+    width: '100vw', 
+    padding: isMobile ? '0' : '10px', 
+    boxSizing: 'border-box', 
+    overflow: 'hidden' 
+  },
+  gameContainer: { 
+    position: 'relative', 
+    zIndex: 1, 
+    border: isMobile ? 'none' : '4px solid #374151', 
+    borderRadius: isMobile ? '0' : '8px', 
+    boxShadow: isMobile ? 'none' : '0 6px 12px rgba(0, 0, 0, 0.5)', 
+    overflow: 'hidden', 
+    backgroundColor: '#000000', 
+    width: '100%', 
+    height: isMobile ? '100vh' : 'auto', 
+    maxWidth: isMobile ? '100vw' : `${GameConfig.gameWidth}px`, 
+    maxHeight: isMobile ? '100vh' : `calc(100vh - 40px)`, 
+    aspectRatio: isMobile ? 'auto' : `${GameConfig.gameWidth} / ${GameConfig.gameHeight}`, 
+    margin: isMobile ? '0' : 'auto' 
+  },
+  backgroundVideo: { 
+    position: 'fixed', 
+    top: 0, 
+    left: 0, 
+    width: '100vw', 
+    height: '100vh', 
+    objectFit: 'cover', 
+    zIndex: -1, 
+    opacity: 0.7,
+    display: isMobile ? 'none' : 'block' 
+  },
+});
 
 const GvozdGame: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -22,6 +63,7 @@ const GvozdGame: React.FC = () => {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
   const [lives, setLives] = useState(GameConfig.player.initialLives);
   const [score, setScore] = useState(0);
   const [difficulty, setDifficulty] = useState(1);
@@ -45,12 +87,23 @@ const GvozdGame: React.FC = () => {
     }, 150); // Задержка для React/браузера
   }, []);
 
-  // Определение мобильного устройства
+  // Определение мобильного устройства и ориентации
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768 || navigator.maxTouchPoints > 0);
+    const checkOrientation = () => setIsPortrait(window.innerHeight > window.innerWidth);
+    
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    checkOrientation();
+    
+    window.addEventListener('resize', () => {
+      checkMobile();
+      checkOrientation();
+    });
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener('resize', checkOrientation);
+    };
   }, []);
 
   // Обработчик Game Over
@@ -370,13 +423,13 @@ const GvozdGame: React.FC = () => {
 
   // --- Рендер компонента ---
   return (
-    <div style={styles.pageWrapper}>
-      <video style={styles.backgroundVideo} autoPlay loop muted playsInline preload="auto">
+    <div style={getStyles(isMobile).pageWrapper}>
+      <video style={getStyles(isMobile).backgroundVideo} autoPlay loop muted playsInline preload="auto">
         <source src="/assets/gvozd/bg.mp4" type="video/mp4" />
         Ваш браузер не поддерживает тег video.
       </video>
 
-      <div style={styles.gameContainer}>
+      <div style={getStyles(isMobile).gameContainer}>
         <div
           ref={containerRef}
           style={{ width: '100%', height: '100%', display: started ? 'block' : 'none' }}
@@ -384,7 +437,13 @@ const GvozdGame: React.FC = () => {
           tabIndex={0}
           onClick={focusGameContainer}
         />
-        {!started && <StartScreen onStart={handleStart} isMobile={isMobile} />}
+        {!started && (
+          <StartScreen 
+            onStart={handleStart} 
+            isMobile={isMobile}
+            isPortrait={isPortrait}
+          />
+        )}
         {started && (
           <GameUI
             score={score}
@@ -406,13 +465,6 @@ const GvozdGame: React.FC = () => {
       </div>
     </div>
   );
-};
-
-// Стили (без изменений)
-const styles: { [key: string]: React.CSSProperties } = {
-  pageWrapper: { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', minHeight: '100vh', width: '100vw', padding: '10px', boxSizing: 'border-box', overflow: 'hidden' },
-  gameContainer: { position: 'relative', zIndex: 1, border: '4px solid #374151', borderRadius: '8px', boxShadow: '0 6px 12px rgba(0, 0, 0, 0.5)', overflow: 'hidden', backgroundColor: '#000000', width: '100%', height: 'auto', maxWidth: `${GameConfig.gameWidth}px`, maxHeight: `calc(100vh - 40px)`, aspectRatio: `${GameConfig.gameWidth} / ${GameConfig.gameHeight}`, margin: 'auto' },
-  backgroundVideo: { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', objectFit: 'cover', zIndex: -1, opacity: 0.7 },
 };
 
 export default GvozdGame;

@@ -278,6 +278,10 @@ export class PlayerController {
 
     public getPlayerSprite(): Phaser.Physics.Arcade.Sprite { return this.player; }
     public getLives(): number { return this.lives; }
+    public setLives(lives: number): void { 
+        this.lives = lives;
+        this.scene.registry.set('lives', this.lives);
+    }
     public isPlayerPoweredUp(): boolean { return this.isPoweredUp; }
 
     public disableInputAndPhysics() {

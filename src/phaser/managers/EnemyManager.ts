@@ -140,7 +140,21 @@ export class EnemyManager {
     }
 
     public shootPoop(zil: Phaser.Physics.Arcade.Sprite) {
-         if(!this.poops)return;if(zil.getData('type')!=='zil_big'||!zil.active||zil.getData('isDead'))return;if(this.poops.countActive(true)>=this.config.maxObjects.poops)return;try{const direction=zil.getData('direction')??-1;const startX=zil.x+(direction*zil.displayWidth*0.3);const startY=zil.y-zil.displayHeight*0.4;const poop=this.poops.create(startX,startY,'poop')as Phaser.Physics.Arcade.Sprite;if(!poop)return;poop.setScale(this.config.enemy.poop.scale).setDepth(this.config.enemy.poop.depth).setCollideWorldBounds(false);poop.setVelocityX(this.config.enemy.poop.speed*direction);poop.setVelocityY(Phaser.Math.Between(-20,20));this.scene.time.delayedCall(this.config.enemy.poop.lifetime,()=>{if(poop?.active){poop.destroy();}},[],this);}catch(error){console.error("[ShootPoop] Error:",error)}
+         if(!this.poops)return;if(zil.getData('type')!=='zil_big'||!zil.active||zil.getData('isDead'))return;if(this.poops.countActive(true)>=this.config.maxObjects.poops)return;try{const direction=zil.getData('direction')??-1;const startX=zil.x+(direction*zil.displayWidth*0.3);const startY=zil.y-zil.displayHeight*0.4;const poop=this.poops.create(startX,startY,'poop')as Phaser.Physics.Arcade.Sprite;if(!poop)return;poop.setScale(this.config.enemy.poop.scale).setDepth(this.config.enemy.poop.depth).setCollideWorldBounds(false);poop.setVelocityX(this.config.enemy.poop.speed*direction);poop.setVelocityY(Phaser.Math.Between(-20,20));
+
+         // Добавляем вращение какашке
+         if (poop.body instanceof Phaser.Physics.Arcade.Body) {
+             // Устанавливаем угловую скорость для вращения
+             poop.body.setAngularVelocity(Phaser.Math.Between(-300, 300));
+             
+             // Добавляем небольшой отскок для более реалистичного эффекта
+             poop.body.setBounce(0.3);
+             
+             // Добавляем небольшое трение для постепенного замедления вращения
+             poop.body.setDrag(0.1);
+         }
+         
+         this.scene.time.delayedCall(this.config.enemy.poop.lifetime,()=>{if(poop?.active){poop.destroy();}},[],this);}catch(error){console.error("[ShootPoop] Error:",error)}
     }
 
     public spawnMeteor(): Phaser.Physics.Arcade.Sprite | null {
@@ -188,52 +202,51 @@ export class EnemyManager {
 
     private updateEnemyPatrol(enemy: Phaser.Physics.Arcade.Sprite, time: number) {
          if (!enemy.active || !(enemy.body instanceof Phaser.Physics.Arcade.Body) || enemy.getData('isDead')) return;
-         const startX=enemy.getData('startX')??enemy.x;const range=enemy.getData('range')??100;const speed=enemy.getData('speed')??30;let direction=enemy.getData('direction')??-1;const enemyType=enemy.getData('type');const body=enemy.body as Phaser.Physics.Arcade.Body;let newDirection=direction;
          
-         if(enemyType==='zil'||enemyType==='dog'){
-             const isBlockedLeft=body.blocked.left||body.touching.left;
-             const isBlockedRight=body.blocked.right||body.touching.right;
-             const isOnFloor=body.blocked.down||body.touching.down;
+         const startX = enemy.getData('startX') ?? enemy.x;
+         const range = enemy.getData('range') ?? 100;
+         const speed = enemy.getData('speed') ?? 30;
+         let direction = enemy.getData('direction') ?? -1;
+         const enemyType = enemy.getData('type');
+         const body = enemy.body as Phaser.Physics.Arcade.Body;
+         
+         if (enemyType === 'zil' || enemyType === 'dog') {
+             // Проверяем, не заблокирован ли враг
+             const isBlockedLeft = body.blocked.left || body.touching.left;
+             const isBlockedRight = body.blocked.right || body.touching.right;
+             const isOnFloor = body.blocked.down || body.touching.down;
              
-             // Проверка столкновения с препятствиями для разворота
-             if(isBlockedRight&&direction>0){
-                 newDirection=-1;
-                 // Добавляем небольшую задержку перед разворотом
-                 enemy.setVelocityX(0);
-                 this.scene.time.delayedCall(100, () => {
-                     if(enemy.active && !enemy.getData('isDead')) {
-                         enemy.setVelocityX(speed*newDirection);
-                         enemy.setFlipX(newDirection>0);
-                     }
-                 });
-             }else if(isBlockedLeft&&direction<0){
-                 newDirection=1;
-                 // Добавляем небольшую задержку перед разворотом
-                 enemy.setVelocityX(0);
-                 this.scene.time.delayedCall(100, () => {
-                     if(enemy.active && !enemy.getData('isDead')) {
-                         enemy.setVelocityX(speed*newDirection);
-                         enemy.setFlipX(newDirection>0);
-                     }
-                 });
+             // Если враг заблокирован, меняем направление
+             if (isBlockedRight && direction > 0) {
+                 direction = -1;
+                 enemy.setData('direction', direction);
+                 console.log(`Zil blocked right, turning left at x=${enemy.x}`);
+             } else if (isBlockedLeft && direction < 0) {
+                 direction = 1;
+                 enemy.setData('direction', direction);
+                 console.log(`Zil blocked left, turning right at x=${enemy.x}`);
              }
              
-             // Проверка патрулирования в пределах диапазона
-             if(range>0&&!isBlockedLeft&&!isBlockedRight){
-                 if(direction<0&&enemy.x<startX-range){
-                     newDirection=1;
-                 }else if(direction>0&&enemy.x>startX+range){
-                     newDirection=-1;
+             // Проверяем, не вышел ли враг за пределы патрулирования
+             if (range > 0 && !isBlockedLeft && !isBlockedRight) {
+                 if (direction < 0 && enemy.x < startX - range) {
+                     direction = 1;
+                     enemy.setData('direction', direction);
+                 } else if (direction > 0 && enemy.x > startX + range) {
+                     direction = -1;
+                     enemy.setData('direction', direction);
                  }
              }
              
-             // Обновляем направление и скорость, если оно изменилось
-             if(newDirection!==direction||(Math.abs(body.velocity.x)<speed*0.5&&isOnFloor)){
-                 enemy.setData('direction',newDirection);
-                 enemy.setVelocityX(speed*newDirection);
-                 enemy.setFlipX(newDirection>0);
+             // Всегда устанавливаем скорость, чтобы враг не останавливался
+             enemy.setVelocityX(speed * direction);
+             enemy.setFlipX(direction > 0);
+             
+             // Если враг на полу и его скорость близка к нулю, даем ему импульс
+             if (isOnFloor && Math.abs(body.velocity.x) < speed * 0.5) {
+                 enemy.setVelocityX(speed * direction);
              }
-         }else if(enemyType==='bumblebee'){
+         } else if (enemyType === 'bumblebee') {
              const startY=enemy.getData('startY');
              const verticalRange=enemy.getData('verticalRange');
              const verticalSpeedFactor=enemy.getData('verticalSpeedFactor');
@@ -243,15 +256,15 @@ export class EnemyManager {
              }
              if(range>0){
                  if(direction<0&&enemy.x<startX-range){
-                     newDirection=1;
+                     direction=1;
                  }else if(direction>0&&enemy.x>startX+range){
-                     newDirection=-1;
+                     direction=-1;
                  }
              }
-             if(newDirection!==direction){
-                 enemy.setData('direction',newDirection);
-                 enemy.setVelocityX(speed*newDirection);
-                 enemy.setFlipX(newDirection>0);
+             if(direction!==enemy.getData('direction')){
+                 enemy.setData('direction',direction);
+                 enemy.setVelocityX(speed*direction);
+                 enemy.setFlipX(direction>0);
              }
          }
     }
@@ -307,6 +320,13 @@ export class EnemyManager {
             
             // Добавляем вращение для более динамичного эффекта
             body.setAngularVelocity(knockbackDirection * 200);
+            
+            // Уничтожаем врага через некоторое время
+            this.scene.time.delayedCall(1000, () => {
+                if (enemy && enemy.active) {
+                    enemy.destroy();
+                }
+            });
         } else {
             // Если нет физического тела, просто скрываем врага
             enemy.setVisible(false); 
@@ -317,8 +337,6 @@ export class EnemyManager {
         
         // Добавляем частицы или другие визуальные эффекты
         this.scene.events.emit('enemyStomped', enemy);
-        
-        // Очистка в update() обрабатывает уничтожение
     }
 
     public handleBumblebeeHit(bumblebee: Phaser.Physics.Arcade.Sprite) {
@@ -331,8 +349,38 @@ export class EnemyManager {
      }
 
     // FIXED: Changed 'enemy' to '_enemy' as parameter isn't used in the function body
-    public handleEnemyPipeCollision(_enemy: Phaser.Physics.Arcade.Sprite, _pipe: Phaser.Tilemaps.Tile | Phaser.GameObjects.GameObject) {
-        // Patrol logic handles reversal based on body.blocked state. Nothing needed here currently.
+    public handleEnemyPipeCollision(enemy: Phaser.Physics.Arcade.Sprite, _pipe: Phaser.Tilemaps.Tile | Phaser.GameObjects.GameObject) {
+        if (!enemy?.active || enemy.getData('isDead')) return;
+        
+        const enemyType = enemy.getData('type');
+        if (enemyType === 'zil') {
+            // Меняем направление движения зила
+            const currentDirection = enemy.getData('direction') || 1;
+            const newDirection = -currentDirection;
+            
+            // Обновляем данные зила
+            enemy.setData('direction', newDirection);
+            
+            // Меняем скорость и направление спрайта
+            const speed = enemy.getData('speed') || this.config.enemy.zil.speeds[0];
+            enemy.setVelocityX(speed * newDirection);
+            enemy.setFlipX(newDirection > 0);
+            
+            console.log(`Zil direction changed to ${newDirection} at x=${enemy.x}`);
+            
+            // Добавляем небольшую задержку перед изменением направления, чтобы избежать застревания
+            this.scene.time.delayedCall(100, () => {
+                if (enemy?.active && !enemy.getData('isDead')) {
+                    // Проверяем, не заблокирован ли зил с обеих сторон
+                    const body = enemy.body as Phaser.Physics.Arcade.Body;
+                    if (body.blocked.left && body.blocked.right) {
+                        // Если зил заблокирован с обеих сторон, даем ему импульс вверх
+                        enemy.setVelocityY(-100);
+                        console.log(`Zil stuck, giving upward impulse at x=${enemy.x}`);
+                    }
+                }
+            });
+        }
     }
 
     public handlePoopHit(poop: Phaser.Physics.Arcade.Sprite, _target: Phaser.GameObjects.GameObject) {

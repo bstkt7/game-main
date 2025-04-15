@@ -1,6 +1,6 @@
 // src/phaser/GvozdScene.ts
 import Phaser from 'phaser';
-import { SceneKeys, GameConfig } from './config/GameConfig';
+import { GameConfig } from './config/GameConfig';
 import { PlayerController } from './managers/PlayerController';
 import { WorldGenerator } from './managers/WorldGenerator';
 import { EnemyManager } from './managers/EnemyManager';

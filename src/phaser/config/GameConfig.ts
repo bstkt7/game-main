@@ -400,8 +400,8 @@ export const GameConfig: GameConfigDefinition = {
 
     enemy: {
         // Stomp Physics Config
-        stompBounceY: -300, // Enemy bounces UP (-Y) when stomped
-        stompBounceX: 75,   // Enemy gets knocked sideways slightly
+        stompBounceY: -200, // Enemy bounces UP (-Y) when stomped
+        stompBounceX: 150,   // Enemy gets knocked sideways slightly
         // Enemy Types
         zil: {
             depth: 12,
@@ -423,10 +423,10 @@ export const GameConfig: GameConfigDefinition = {
         },
         bumblebee: {
              depth: 11,
-             scale: 0.12,
-             speed: 80,
+             scale: 0.25,
+             speed: 110,
              patrolRange: 150,
-             spawnHeightOffset: -120,
+             spawnHeightOffset: -350,
              animKey: 'bumblebee_fly',
              animFrames: ['s1', 's2', 's3'],
              animFrameRate: 10,
@@ -434,7 +434,7 @@ export const GameConfig: GameConfigDefinition = {
              verticalSpeedFactor: 0.0015
         },
         poop: {
-            scale: 0.18,
+            scale: 0.21,
             depth: 8,
             speed: 280,
             lifetime: 2800,
@@ -446,15 +446,15 @@ export const GameConfig: GameConfigDefinition = {
             depth: 15,
             scale: 0.2,
             spawnChance: 0.003,
-            minSpeed: 220,
-            maxSpeed: 450,
-            maxAngle: 30,
+            minSpeed: 320,
+            maxSpeed: 550,
+            maxAngle: 45,
             impactShakeDuration: 120,
             impactShakeIntensity: 0.006,
         },
         fireStick: {
             depth: 8,
-            scale: 0.25,
+            scale: 0.21,
             offset: 8,
             minRotationSpeed: 1800,
             maxRotationSpeed: 3500,

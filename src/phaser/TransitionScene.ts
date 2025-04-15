@@ -34,7 +34,7 @@ export class TransitionScene extends Phaser.Scene {
 
         // Текст в зависимости от следующей сцены (пример)
         let transitionText = 'Loading...';
-        if (this.nextSceneKey === SceneKeys.CaveScene) {
+        if (this.nextSceneKey === 'CaveScene') {
             transitionText = 'ПОДЗЕМЕЛЬЕ';
         } // Добавить другие варианты, если будут еще уровни
 

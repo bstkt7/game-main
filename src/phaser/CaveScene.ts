@@ -1,6 +1,6 @@
 // src/phaser/CaveScene.ts
 import Phaser from 'phaser';
-import { SceneKeys, GameConfig } from './config/GameConfig';
+import { GameConfig } from './config/GameConfig';
 import { PlayerController } from './managers/PlayerController';
 import { WorldGenerator } from './managers/WorldGenerator';
 import { EnemyManager } from './managers/EnemyManager';
@@ -195,12 +195,18 @@ export class CaveScene extends Phaser.Scene {
             // Player
             this.player = this.physics.add.sprite(100, GameConfig.ground.top - 50, GameConfig.player.idleFrames[0])
                 .setScale(GameConfig.player.scale).setDepth(GameConfig.player.depth).setCollideWorldBounds(true);
-            if (this.player.body instanceof Phaser.Physics.Arcade.Body) { /* ... body setup ... */ this.player.body.gravity.y = GameConfig.player.gravityY; this.player.body.setSize(this.player.width * 0.6, this.player.height * 0.8); this.player.body.setOffset(this.player.width * 0.2, this.player.height * 0.1); }
-            else { throw new Error("Player physics body not created in CaveScene!"); }
+            if (this.player.body instanceof Phaser.Physics.Arcade.Body) {
+                this.player.body.gravity.y = GameConfig.player.gravityY;
+                this.player.body.setSize(this.player.width * 0.6, this.player.height * 0.8);
+                this.player.body.setOffset(this.player.width * 0.2, this.player.height * 0.1);
+            } else {
+                throw new Error("Player physics body not created in CaveScene!");
+            }
             console.log('Cave Player created.');
 
             // Managers
             this.playerController = new PlayerController(this, this.player, this.cursors);
+            this.playerController.setLives(this.currentLives);
             this.collectiblesManager = new CollectiblesManager(this, { gvozdiki: this.gvozdikiGroup, money: this.moneyGroup }, this.playerController);
             this.enemyManager = new EnemyManager(this, { zils: this.zilsGroup, bumblebees: this.cruzaksGroup, dogs: this.dogsGroup, poops: this.poopsGroup, meteors: this.meteorsGroup }, this.playerController);
              // !!!!! ИСПРАВЛЕН ВЫЗОВ: 7 аргументов !!!!!
@@ -343,9 +349,12 @@ export class CaveScene extends Phaser.Scene {
     public setMuteState(newMutedState: boolean) { /* ... */ this.isMuted = newMutedState; this.sound.setMute(this.isMuted); if (this.isMuted) { this.music?.pause(); } else { if (this.music && !this.scene.isPaused() && !this.isGameOver && this.cutsceneManager && !this.cutsceneManager.isCutsceneActive()) { /* ... resume music ... */ if (this.music.isPaused) { this.music.resume(); } else if (!this.music.isPlaying) { this.music.play(); } } } console.log(`Cave game sounds ${this.isMuted ? 'MUTED' : 'UNMUTED'}`); }
 
     // Геттеры
-    public getScore(): number { /* ... */ return this.collectiblesManager?.gvozdikiCollected ?? 0; }
-    public getLives(): number { /* ... */ return this.playerController?.getLives() ?? 0; }
-    public getCurrentDifficulty(): number { /* ... */ return this.worldGenerator?.getDifficultyValue() ?? 1; }
+    public getScore(): number { return this.collectiblesManager?.gvozdikiCollected ?? 0; }
+    
+    public getLives(): number { return this.playerController?.getLives() ?? 0; }
+    
+    public getCurrentDifficulty(): number { return this.worldGenerator?.getDifficultyValue() ?? 1; }
+
     public getPlayerControllerInstance(): PlayerController | null { /* ... */ return this.playerController ?? null; }
 
     // !!!!! ИСПРАВЛЕНО: Логика очистки !!!!!

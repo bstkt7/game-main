@@ -73,7 +73,12 @@ export class CollectiblesManager {
                 if (this.moneyGroup.countActive(true) < this.config.maxObjects.money) {
                     spawnedItem = this.moneyGroup.create(x, y, 'money') as Phaser.Physics.Arcade.Sprite;
                     if (spawnedItem) {
-                        spawnedItem.setScale(this.config.collectibles.money.scale).setDepth(this.config.collectibles.money.depth);
+                        spawnedItem.setScale(this.config.collectibles.money.scale)
+                            .setDepth(this.config.collectibles.money.depth)
+                            .setCollideWorldBounds(false)
+                            .setBounce(0.5)
+                            .setGravityY(this.config.gravity)
+                            .setVisible(true);
                         if (spawnedItem.body) {
                             (spawnedItem.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
                             (spawnedItem.body as Phaser.Physics.Arcade.Body).immovable = true;
@@ -181,5 +186,79 @@ export class CollectiblesManager {
     // Method for playing sound via scene event emitter
     private playSound(key: string){
         this.scene.events.emit('requestSoundPlay', key);
+    }
+
+    public spawnMoney(x: number, y: number, isBonus: boolean = false): Phaser.Physics.Arcade.Sprite | null {
+        if (!this.moneyGroup || this.moneyGroup.countActive(true) >= this.config.maxObjects.money) return null;
+        
+        try {
+            const money = this.moneyGroup.create(x, y, 'money') as Phaser.Physics.Arcade.Sprite;
+            if (!money) return null;
+            
+            money.setScale(this.config.collectibles.money.scale)
+                .setDepth(this.config.collectibles.money.depth)
+                .setCollideWorldBounds(false)
+                .setBounce(0.3)
+                .setGravityY(this.config.gravity)
+                .setVisible(true);
+            
+            // Устанавливаем данные для денег
+            money.setDataEnabled();
+            money.setData('isCollected', false);
+            money.setData('isBonus', isBonus);
+            
+            // Добавляем более яркое свечение для бонусных денег
+            if (isBonus) {
+                // Увеличиваем масштаб для бонусных денег
+                money.setScale(this.config.collectibles.money.scale * 1.5);
+                
+                // Добавляем свечение
+                const glow = this.scene.add.sprite(x, y, 'money_glow');
+                glow.setScale(this.config.collectibles.money.scale * 2);
+                glow.setDepth(this.config.collectibles.money.depth - 1);
+                glow.setAlpha(0.7);
+                
+                // Добавляем пульсацию свечения
+                this.scene.tweens.add({
+                    targets: glow,
+                    alpha: { from: 0.7, to: 0.3 },
+                    scale: { from: this.config.collectibles.money.scale * 2, to: this.config.collectibles.money.scale * 2.5 },
+                    duration: 1000,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+                
+                // Привязываем свечение к деньгам
+                money.setData('glow', glow);
+                
+                // Добавляем вращение для бонусных денег
+                if (money.body instanceof Phaser.Physics.Arcade.Body) {
+                    money.body.setAngularVelocity(Phaser.Math.Between(-100, 100));
+                }
+            }
+            
+            // Добавляем небольшую случайную скорость для реалистичного эффекта
+            if (money.body instanceof Phaser.Physics.Arcade.Body) {
+                money.body.setVelocityX(Phaser.Math.Between(-50, 50));
+                money.body.setVelocityY(Phaser.Math.Between(-100, -50));
+            }
+            
+            // Уничтожаем деньги через некоторое время
+            this.scene.time.delayedCall(5000, () => {
+                if (money && money.active) {
+                    // Уничтожаем свечение, если оно есть
+                    const glow = money.getData('glow');
+                    if (glow) glow.destroy();
+                    
+                    money.destroy();
+                }
+            });
+            
+            return money;
+        } catch (error) {
+            console.error("[SpawnMoney] Error:", error);
+            return null;
+        }
     }
 }

@@ -58,24 +58,36 @@ export class CollisionManager {
         );
 
         // --- Player vs Enemies (Collider + ProcessCallback for Stomps) ---
-        if (groups.zils) this.scene.physics.add.collider( // Use COLLIDER
-            player, groups.zils,
-            this.handlePlayerEnemyCollision as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, // Side damage
-            this.processPlayerEnemyStomp as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, // Stomp check
-            this
-        );
-        if (groups.dogs) this.scene.physics.add.collider( // Use COLLIDER
-            player, groups.dogs,
-            this.handlePlayerEnemyCollision as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-            this.processPlayerEnemyStomp as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, // Stomp check
-            this
-        );
-        if (groups.bumblebees) this.scene.physics.add.collider( // Bumblebees don't get stomped
-             player, groups.bumblebees,
-             this.handlePlayerEnemyCollision as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
-             undefined, // No stomp process needed
-             this
-         );
+        if (groups.zils) {
+            console.log("Setting up Zil collisions with process callback");
+            this.scene.physics.add.collider( // Use COLLIDER
+                player, groups.zils,
+                this.handlePlayerEnemyCollision as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, // Side damage
+                this.processPlayerEnemyStomp as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, // Stomp check
+                this
+            );
+        }
+        
+        if (groups.dogs) {
+            console.log("Setting up Dog collisions with process callback");
+            this.scene.physics.add.collider( // Use COLLIDER
+                player, groups.dogs,
+                this.handlePlayerEnemyCollision as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+                this.processPlayerEnemyStomp as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, // Stomp check
+                this
+            );
+        }
+        
+        // Убираем коллизию у шмелей, чтобы они просто летали
+        // if (groups.bumblebees) {
+        //     console.log("Setting up Bumblebee collisions");
+        //     this.scene.physics.add.collider( // Bumblebees don't get stomped
+        //          player, groups.bumblebees,
+        //          this.handlePlayerEnemyCollision as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+        //          undefined, // No stomp process needed
+        //          this
+        //      );
+        // }
 
         // --- Player vs Projectiles/Hazards (Overlap) ---
         if (groups.poops) this.scene.physics.add.overlap(player, groups.poops, this.playerVsPoopHandler as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback, undefined, this);
@@ -117,41 +129,73 @@ export class CollisionManager {
         const player = playerObj as Phaser.Physics.Arcade.Sprite;
         const enemy = enemyObj as Phaser.Physics.Arcade.Sprite;
 
-        if (!player?.active || !enemy?.active || !player.body || !enemy.body) return false;
-        if (!(player.body instanceof Phaser.Physics.Arcade.Body) || !(enemy.body instanceof Phaser.Physics.Arcade.Body)) return false;
+        if (!player?.active || !enemy?.active || !player.body || !enemy.body) {
+            console.log("Stomp check failed: inactive objects or missing bodies");
+            return false;
+        }
+        
+        if (!(player.body instanceof Phaser.Physics.Arcade.Body) || !(enemy.body instanceof Phaser.Physics.Arcade.Body)) {
+            console.log("Stomp check failed: invalid body types");
+            return false;
+        }
 
         const pBody = player.body; 
         const eBody = enemy.body; 
         const enemyType = enemy.getData('type');
-
-        // Проверка прыжка на врага сверху - теперь для всех типов врагов
-        // Уменьшаем порог скорости падения для более легкого определения прыжка
-        const isPlayerFalling = pBody.velocity.y > 30; // Уменьшенный порог скорости падения
-        const isTouchingTop = pBody.touching.down && eBody.touching.up; // Надежная проверка касания сверху
         const isEnemyAlive = !enemy.getData('isDead');
+
+        // Проверка прыжка на врага сверху
+        const isPlayerFalling = pBody.velocity.y > 10; // Увеличиваем порог скорости падения
+        const isTouchingTop = pBody.touching.down && eBody.touching.up; // Проверка касания сверху
         
-        // Добавляем дополнительную проверку на относительное положение игрока и врага
-        const isPlayerAboveEnemy = player.y < enemy.y - enemy.height * 0.3;
+        // Улучшенная проверка на относительное положение игрока и врага
+        const playerBottom = player.y + player.height * 0.3; // Верхняя часть игрока
+        const enemyTop = enemy.y - enemy.height * 0.3; // Верхняя часть врага
+        const isPlayerAboveEnemy = playerBottom < enemyTop + 20; // Добавляем небольшой запас
 
-        console.log(`Stomp check: falling=${isPlayerFalling}, touching=${isTouchingTop}, alive=${isEnemyAlive}, above=${isPlayerAboveEnemy}`);
+        // Проверка на тип врага (все варианты зилов и собаки)
+        const isStompableEnemy = enemyType === 'zil' || enemyType === 'zil_fast' || enemyType === 'zil_big' || enemyType === 'dog';
 
-        if ((isPlayerFalling && isTouchingTop && isEnemyAlive) || (isPlayerAboveEnemy && isPlayerFalling && isEnemyAlive)) {
+        console.log(`Stomp check for ${enemyType}: falling=${isPlayerFalling}, touching=${isTouchingTop}, alive=${isEnemyAlive}, above=${isPlayerAboveEnemy}, stompable=${isStompableEnemy}`);
+        console.log(`Player velocity: y=${pBody.velocity.y}, touching: down=${pBody.touching.down}, up=${eBody.touching.up}`);
+        console.log(`Position check: playerBottom=${playerBottom}, enemyTop=${enemyTop}, diff=${enemyTop - playerBottom}`);
+
+        // Для шмелей всегда возвращаем false, чтобы они не наносили урон
+        if (enemyType === 'bumblebee') {
+            console.log(`Bumblebee collision ignored - no damage`);
+            return false;
+        }
+
+        // Проверяем все условия для прыжка на врага
+        if (isStompableEnemy && isEnemyAlive && isPlayerFalling && (isTouchingTop || isPlayerAboveEnemy)) {
             // --- Произошел прыжок на врага ---
-            console.log(`Player stomped on ${enemyType}!`);
-            this.enemyManager.handleEnemyStomped(enemy, player); // Обработка эффекта прыжка на врага
+            console.log(`Player stomped on ${enemyType}! Processing stomp...`);
+            
+            // Вызываем обработчик прыжка на врага
+            this.enemyManager.handleEnemyStomped(enemy, player);
             
             // Проверка наличия метода перед вызовом
             if (typeof this.playerController.triggerStompBounce === 'function') {
+                console.log("Calling triggerStompBounce");
                 this.playerController.triggerStompBounce(); // Обработка отскока игрока
             } else {
                 console.error("PlayerController missing 'triggerStompBounce' method!");
                 pBody.setVelocityY(-this.config.player.stompBounceSpeed); // Запасной вариант отскока
             }
-            return false; // Обработка столкновения завершена (прыжок), отключаем стандартное разрешение (урон)
+            
+            // Возвращаем false, чтобы отключить стандартное разрешение столкновения (урон)
+            return false;
+        }
+        
+        // Если не прыжок, но враг мертв, не обрабатываем столкновение
+        if (!isEnemyAlive) {
+            console.log(`Enemy ${enemyType} is already dead, ignoring collision`);
+            return false;
         }
         
         // Разрешаем стандартное столкновение, если не прыжок И враг еще не мертв
-        return !enemy.getData('isDead');
+        console.log(`No stomp detected for ${enemyType}, proceeding with normal collision`);
+        return true;
     }
 
     /** Collider Callback: Handles player taking damage from side/bottom collision with any enemy type. */
@@ -163,18 +207,38 @@ export class CollisionManager {
         const enemy = enemyObj as Phaser.Physics.Arcade.Sprite;
 
         if (player?.active && enemy?.active && !enemy.getData('isDead') && this.playerController.canBeHurt()) {
-             // FIXED: Check if method exists before calling PlayerController method
-             if (typeof this.playerController.handleEnemyCollision === 'function') {
-                 this.playerController.handleEnemyCollision(enemy); // Pass enemy for context
-             } else {
-                 console.error("PlayerController missing 'handleEnemyCollision' method!");
-                 this.playerController.applyDamage(); // Fallback to simpler damage method if available
-             }
-
-             // Optional: If bumblebee collision should destroy the bumblebee
-             if (enemy.getData('type') === 'bumblebee') {
-                 this.enemyManager.handleBumblebeeHit(enemy);
-             }
+            // Проверяем тип врага
+            const enemyType = enemy.getData('type');
+            
+            // Шмели не наносят урон
+            if (enemyType === 'bumblebee') {
+                console.log(`Bumblebee collision - no damage`);
+                return;
+            }
+            
+            // Проверяем, не прыгает ли игрок на врага
+            const pBody = player.body as Phaser.Physics.Arcade.Body;
+            const eBody = enemy.body as Phaser.Physics.Arcade.Body;
+            
+            if (pBody && eBody) {
+                const isPlayerFalling = pBody.velocity.y > 5;
+                const isTouchingTop = pBody.touching.down && eBody.touching.up;
+                const isPlayerAboveEnemy = player.y < enemy.y - enemy.height * 0.3;
+                
+                // Если игрок прыгает на врага, не наносим урон
+                if (isPlayerFalling && (isTouchingTop || isPlayerAboveEnemy)) {
+                    console.log(`Player jumping on ${enemyType}, no damage`);
+                    return;
+                }
+            }
+            
+            // Для остальных врагов наносим урон
+            if (typeof this.playerController.handleEnemyCollision === 'function') {
+                this.playerController.handleEnemyCollision(enemy); // Pass enemy for context
+            } else {
+                console.error("PlayerController missing 'handleEnemyCollision' method!");
+                this.playerController.applyDamage(); // Fallback to simpler damage method if available
+            }
         }
     }
 
