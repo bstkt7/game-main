@@ -1,4 +1,5 @@
-// src/Gvozd.tsx
+// src/Gvozd.tsx - обновленная версия
+
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Phaser from 'phaser';
 import { GvozdScene } from './phaser/GvozdScene';
@@ -9,7 +10,7 @@ import GameUI from './components/GameUI';
 import MobileControls from './components/MobileControls';
 import { GameConfig } from './phaser/config/GameConfig';
 
-// Ключи сцен (теперь будут использоваться)
+// Ключи сцен
 const GVOZD_SCENE_KEY = 'GvozdScene';
 const TRANSITION_SCENE_KEY = 'TransitionScene';
 
@@ -57,6 +58,7 @@ const getStyles = (isMobile: boolean): { [key: string]: React.CSSProperties } =>
 
 const GvozdGame: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const fullscreenContainerRef = useRef<HTMLDivElement | null>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const [activeScene, setActiveScene] = useState<Phaser.Scene | null>(null);
   const [started, setStarted] = useState(false);
@@ -88,39 +90,6 @@ const GvozdGame: React.FC = () => {
     }, 150); // Задержка для React/браузера
   }, []);
 
-  // --- Функция для запроса полноэкранного режима ---
-  const requestFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) {
-      if (containerRef.current) {
-        containerRef.current.requestFullscreen().catch(err => {
-          console.warn(`[GvozdGame.tsx] Ошибка перехода в полноэкранный режим: ${err.message}`);
-        });
-      } else {
-        document.documentElement.requestFullscreen().catch(err => {
-          console.warn(`[GvozdGame.tsx] Ошибка перехода в полноэкранный режим: ${err.message}`);
-        });
-      }
-    }
-  }, []);
-
-  // --- Функция для выхода из полноэкранного режима ---
-  const exitFullscreen = useCallback(() => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(err => {
-        console.warn(`[GvozdGame.tsx] Ошибка выхода из полноэкранного режима: ${err.message}`);
-      });
-    }
-  }, []);
-
-  // --- Функция для переключения полноэкранного режима ---
-  const toggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) {
-      exitFullscreen();
-    } else {
-      requestFullscreen();
-    }
-  }, [requestFullscreen, exitFullscreen]);
-
   // Определение мобильного устройства и ориентации
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768 || navigator.maxTouchPoints > 0);
@@ -140,24 +109,31 @@ const GvozdGame: React.FC = () => {
     };
   }, []);
 
-  // Обработчик изменения полноэкранного режима
+  // Обработчик полноэкранного режима
+  const handleToggleFullscreen = useCallback(() => {
+    if (!isFullscreen && fullscreenContainerRef.current) {
+      fullscreenContainerRef.current.requestFullscreen().catch((err) => {
+        console.warn("[GvozdGame.tsx] Ошибка перехода в полноэкранный режим:", err);
+      });
+    } else if (document.fullscreenElement) {
+      document.exitFullscreen().catch((err) => {
+        console.warn("[GvozdGame.tsx] Ошибка выхода из полноэкранного режима:", err);
+      });
+    }
+  }, [isFullscreen]);
+
+  // Слушатель события изменения полноэкранного режима
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
-      
-      // Если вышли из полноэкрана и игра запущена на мобильном
-      if (!document.fullscreenElement && started && isMobile && !isGameOver) {
-        console.log('[GvozdGame.tsx] Вышли из полноэкранного режима');
-        // Можно показать уведомление или автоматически вернуться в полноэкранный режим
-      }
+      console.log("[GvozdGame.tsx] Полноэкранный режим:", !!document.fullscreenElement);
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [started, isMobile, isGameOver]);
+  }, []);
 
   // Обработчик Game Over
   const handleGameOverEvent = useCallback((data: { victory: boolean, score: number }) => {
@@ -166,12 +142,6 @@ const GvozdGame: React.FC = () => {
     setVictory(data.victory);
     setScore(data.score);
     setPaused(true);
-    
-    // Выходим из полноэкранного режима при завершении игры
-    if (isMobile && document.fullscreenElement) {
-      exitFullscreen();
-    }
-    
     if (gameRef.current) {
       gameRef.current.scene.getScenes(true).forEach(scene => {
         if (scene.scene.key !== TRANSITION_SCENE_KEY) { // Используем константу
@@ -180,7 +150,7 @@ const GvozdGame: React.FC = () => {
         }
       });
     }
-  }, [isMobile, exitFullscreen]);
+  }, []);
 
   // Создание игры Phaser
   const createGame = useCallback(() => {
@@ -207,11 +177,9 @@ const GvozdGame: React.FC = () => {
           debug: false,
         },
       },
-      // !!! Указываем ВСЕ сцены и правильный порядок для старта !!!
-      scene: [GvozdScene, TransitionScene, CaveScene], // GvozdScene стартует первой
-      render: { pixelArt: true, antialias: false }, // antialias: false для пиксель-арта
+      scene: [GvozdScene, TransitionScene, CaveScene],
+      render: { pixelArt: true, antialias: false },
       audio: { disableWebAudio: false },
-      // Убрали input capture, т.к. обрабатываем в React
       callbacks: {
         postBoot: (game) => { game.canvas.setAttribute('tabindex', '0'); }
       }
@@ -260,8 +228,7 @@ const GvozdGame: React.FC = () => {
 
   // Уничтожение игры Phaser
   const destroyGame = useCallback(() => {
-    // Убираем отладочную переменную
-     if ((window as any).myPhaserGame === gameRef.current) {
+    if ((window as any).myPhaserGame === gameRef.current) {
          delete (window as any).myPhaserGame;
      }
 
@@ -277,7 +244,7 @@ const GvozdGame: React.FC = () => {
 
   // Жизненный цикл создания/уничтожения
   useEffect(() => {
-    if (started && !gameRef.current && !isLoading) { // Добавили !isLoading
+    if (started && !gameRef.current && !isLoading) {
       createGame();
     } else if (!started && gameRef.current) {
       destroyGame();
@@ -291,7 +258,6 @@ const GvozdGame: React.FC = () => {
   useEffect(() => {
     let intervalId: number | undefined;
     if (started && !isGameOver && activeScene) {
-      // Проверяем наличие методов перед запуском интервала
       const sceneHasMethods = typeof (activeScene as any).getScore === 'function' &&
                               typeof (activeScene as any).getLives === 'function' &&
                               typeof (activeScene as any).getCurrentDifficulty === 'function';
@@ -322,7 +288,7 @@ const GvozdGame: React.FC = () => {
         clearInterval(intervalId);
       }
     };
-  }, [started, isGameOver, activeScene]); // Убрали score, lives, difficulty из зависимостей
+  }, [started, isGameOver, activeScene]);
 
   // --- ГЛОБАЛЬНЫЕ СЛУШАТЕЛИ КЛАВИАТУРЫ ---
   useEffect(() => {
@@ -332,9 +298,8 @@ const GvozdGame: React.FC = () => {
     console.log("[GvozdGame.tsx] Adding GLOBAL keyboard listeners");
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Получаем текущую активную сцену *в момент нажатия*
       const currentActiveScene = gameRef.current?.scene.getScenes(true)[0];
-      if (!currentActiveScene) return; // Выходим, если нет активной сцены
+      if (!currentActiveScene) return;
 
       const playerCtrl = typeof (currentActiveScene as any).getPlayerControllerInstance === 'function'
                            ? (currentActiveScene as any).getPlayerControllerInstance()
@@ -350,7 +315,7 @@ const GvozdGame: React.FC = () => {
       let control: 'left' | 'right' | 'jump' | null = null;
       const active = true;
 
-      switch (event.key) { // Используем event.key для большей совместимости
+      switch (event.key) {
         case 'ArrowLeft': case 'a': case 'A': control = 'left'; break;
         case 'ArrowRight': case 'd': case 'D': control = 'right'; break;
         case 'ArrowUp': case ' ': case 'w': case 'W': control = 'jump'; break;
@@ -376,13 +341,13 @@ const GvozdGame: React.FC = () => {
                            : null;
          if (!playerCtrl) return;
 
-        let control: 'left' | 'right' | 'jump' | null = null; // 'jump' добавлено для полноты
+        let control: 'left' | 'right' | 'jump' | null = null;
         const active = false;
 
         switch (event.key) {
             case 'ArrowLeft': case 'a': case 'A': control = 'left'; break;
             case 'ArrowRight': case 'd': case 'D': control = 'right'; break;
-            case 'ArrowUp': case ' ': case 'w': case 'W': control = 'jump'; break; // Jump тоже обрабатываем
+            case 'ArrowUp': case ' ': case 'w': case 'W': control = 'jump'; break;
         }
 
         if (control) {
@@ -390,7 +355,6 @@ const GvozdGame: React.FC = () => {
                  switch (control) {
                      case 'left': playerCtrl.mobileInputLeft = active; break;
                      case 'right': playerCtrl.mobileInputRight = active; break;
-                     // Сброс флага прыжка при отпускании не нужен, т.к. он сбрасывается в PlayerController
                      case 'jump': break;
                  }
               } catch(e) { console.warn("[GvozdGame.tsx] Error setting keyboard input (keyup):", e); }
@@ -416,28 +380,24 @@ const GvozdGame: React.FC = () => {
            } catch(e) { /* Игнор */ }
        }
     };
-    // Зависим от активной сцены, чтобы перепривязать слушатели при её смене (хотя сцена меняется через start/stop)
-  }, [started, paused, isGameOver, activeScene]); // Зависим от activeScene
-
+  }, [started, paused, isGameOver, activeScene]);
 
   // --- Обработчики кнопок UI ---
   const handleStart = () => {
     console.log('[GvozdGame.tsx] Start button clicked');
-    setIsGameOver(false);
-    setVictory(false);
-    setScore(0);
-    setLives(GameConfig.player.initialLives);
-    setDifficulty(1);
-    setPaused(false);
-    setStarted(true);
+    setIsGameOver(false); setVictory(false); setScore(0);
+    setLives(GameConfig.player.initialLives); setDifficulty(1);
+    setPaused(false); setStarted(true);
     
-    // Запрашиваем полноэкранный режим при старте игры (только для мобильных устройств)
+    // Автоматический запрос полноэкранного режима на мобильных устройствах при старте
     if (isMobile) {
-      requestFullscreen();
+      setTimeout(() => {
+        handleToggleFullscreen();
+      }, 300); // Задержка для инициализации игры
     }
   };
 
-   const handlePauseToggle = () => { // Убрали параметр event
+  const handlePauseToggle = () => {
       if (!activeScene || !started || isGameOver) return;
       const newPausedState = !paused;
 
@@ -447,7 +407,6 @@ const GvozdGame: React.FC = () => {
           console.log(`[GvozdGame.tsx] Game paused (Scene: ${activeScene.scene.key})`);
       } else {
           if (!activeScene.scene.isPaused()) return;
-           // Возвращаем фокус контейнеру ПЕРЕД возобновлением
           focusGameContainer();
           activeScene.scene.resume();
           console.log(`[GvozdGame.tsx] Game resumed (Scene: ${activeScene.scene.key})`);
@@ -455,21 +414,20 @@ const GvozdGame: React.FC = () => {
       setPaused(newPausedState);
    };
 
-  const handleMuteToggle = () => { // Убрали параметр event
+  const handleMuteToggle = () => {
     const newMutedState = !muted;
     setMuted(newMutedState);
-    gameRef.current?.sound.setMute(newMutedState); // Глобальное вкл/выкл звука
+    gameRef.current?.sound.setMute(newMutedState);
     console.log(`[GvozdGame.tsx] Mute toggled: ${newMutedState}`);
-    focusGameContainer(); // Возвращаем фокус
+    focusGameContainer();
   };
 
-  const handleRestart = () => { // Убрали параметр event
+  const handleRestart = () => {
     console.log('[GvozdGame.tsx] Restart button clicked');
-    setStarted(false); // Вызовет destroyGame
+    setStarted(false);
     setIsGameOver(false); setVictory(false); setPaused(false);
-    // Сброс score/lives произойдет в handleStart
     setTimeout(() => {
-      handleStart(); // Вызовет createGame
+      handleStart();
     }, 150);
   };
 
@@ -478,7 +436,6 @@ const GvozdGame: React.FC = () => {
     const playerCtrl = activeScene && typeof (activeScene as any).getPlayerControllerInstance === 'function'
                        ? (activeScene as any).getPlayerControllerInstance()
                        : null;
-    // Проверяем, активна ли сцена перед отправкой команды
     if (!playerCtrl || paused || isGameOver || !activeScene?.scene.isActive()) return;
     try {
       switch (control) {
@@ -497,7 +454,7 @@ const GvozdGame: React.FC = () => {
         Ваш браузер не поддерживает тег video.
       </video>
 
-      <div style={getStyles(isMobile).gameContainer}>
+      <div ref={fullscreenContainerRef} style={getStyles(isMobile).gameContainer}>
         <div
           ref={containerRef}
           style={{ width: '100%', height: '100%', display: started ? 'block' : 'none' }}
@@ -521,11 +478,10 @@ const GvozdGame: React.FC = () => {
             muted={muted}
             isGameOver={isGameOver}
             victory={victory}
-            // !!! Передаем функции без аргументов !!!
             onPauseToggle={handlePauseToggle}
             onMuteToggle={handleMuteToggle}
             onRestart={handleRestart}
-            onToggleFullscreen={toggleFullscreen}
+            onToggleFullscreen={handleToggleFullscreen}
             isFullscreen={isFullscreen}
             isMobile={isMobile}
           />
