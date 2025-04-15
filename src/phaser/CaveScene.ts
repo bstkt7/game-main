@@ -202,7 +202,7 @@ export class CaveScene extends Phaser.Scene {
             // Managers
             this.playerController = new PlayerController(this, this.player, this.cursors);
             this.collectiblesManager = new CollectiblesManager(this, { gvozdiki: this.gvozdikiGroup, money: this.moneyGroup }, this.playerController);
-            this.enemyManager = new EnemyManager(this, { zils: this.zilsGroup, cruzaks: this.cruzaksGroup, dogs: this.dogsGroup, poops: this.poopsGroup, meteors: this.meteorsGroup }, this.playerController);
+            this.enemyManager = new EnemyManager(this, { zils: this.zilsGroup, bumblebees: this.cruzaksGroup, dogs: this.dogsGroup, poops: this.poopsGroup, meteors: this.meteorsGroup }, this.playerController);
              // !!!!! ИСПРАВЛЕН ВЫЗОВ: 7 аргументов !!!!!
             this.worldGenerator = new WorldGenerator(this, { ground: this.groundGroup, pipes: this.pipesGroup, staticPlatforms: this.staticPlatformsGroup, movingPlatforms: this.movingPlatformsGroup, flagpole: this.flagpoleGroup, blocks: this.blocksGroup }, this.fireStickSprites, this.enemyManager, this.collectiblesManager, this.player, 'cave_ground'); // Передаем 'cave_ground' как 7-й аргумент
              // !!!!! ИСПРАВЛЕН ВЫЗОВ: CollisionManager принимает this (CaveScene) !!!!!
@@ -228,7 +228,7 @@ export class CaveScene extends Phaser.Scene {
 
             // Collisions
             this.collisionManager.setupCollisions({
-                player: this.player, ground: this.groundGroup, pipes: this.pipesGroup, staticPlatforms: this.staticPlatformsGroup, movingPlatforms: this.movingPlatformsGroup, blocks: this.blocksGroup, zils: this.zilsGroup, cruzaks: this.cruzaksGroup, dogs: this.dogsGroup, poops: this.poopsGroup, gvozdiki: this.gvozdikiGroup, money: this.moneyGroup, meteors: this.meteorsGroup
+                player: this.player, ground: this.groundGroup, pipes: this.pipesGroup, staticPlatforms: this.staticPlatformsGroup, movingPlatforms: this.movingPlatformsGroup, blocks: this.blocksGroup, zils: this.zilsGroup, bumblebees: this.cruzaksGroup, dogs: this.dogsGroup, poops: this.poopsGroup, gvozdiki: this.gvozdikiGroup, money: this.moneyGroup, meteors: this.meteorsGroup
             });
             console.log('Cave Collisions setup complete.');
 

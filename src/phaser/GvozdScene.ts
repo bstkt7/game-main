@@ -119,6 +119,9 @@ export class GvozdScene extends Phaser.Scene {
             this.load.image('babka', `/assets/gvozd/babka.png`);
             this.load.image('photo', `/assets/gvozd/photo.png`);
             this.load.image('gramota', `/assets/gvozd/gramota.png`);
+            this.load.image('s1', `/assets/gvozd/s1.png`);
+            this.load.image('s2', `/assets/gvozd/s2.png`);
+            this.load.image('s3', `/assets/gvozd/s2.png`);
 
             // Audio
             this.load.audio('bgm', [`/assets/gvozd/bg.mp3`, `/assets/gvozd/bg.ogg`]);
@@ -210,7 +213,7 @@ export class GvozdScene extends Phaser.Scene {
             // Managers
             this.playerController = new PlayerController(this, this.player, this.cursors);
             this.collectiblesManager = new CollectiblesManager(this, { gvozdiki: this.gvozdikiGroup, money: this.moneyGroup }, this.playerController);
-            this.enemyManager = new EnemyManager(this, { zils: this.zilsGroup, cruzaks: this.cruzaksGroup, dogs: this.dogsGroup, poops: this.poopsGroup, meteors: this.meteorsGroup }, this.playerController);
+            this.enemyManager = new EnemyManager(this, { zils: this.zilsGroup, bumblebees: this.cruzaksGroup, dogs: this.dogsGroup, poops: this.poopsGroup, meteors: this.meteorsGroup }, this.playerController);
             // Передаем 'ground' как 7-й аргумент
             this.worldGenerator = new WorldGenerator(this, { ground: this.groundGroup, pipes: this.pipesGroup, staticPlatforms: this.staticPlatformsGroup, movingPlatforms: this.movingPlatformsGroup, flagpole: this.flagpoleGroup, blocks: this.blocksGroup }, this.fireStickSprites, this.enemyManager, this.collectiblesManager, this.player, 'ground');
             this.collisionManager = new CollisionManager(this, this.playerController, this.enemyManager, this.collectiblesManager); // Передаем 'this' как Phaser.Scene
@@ -236,7 +239,7 @@ export class GvozdScene extends Phaser.Scene {
 
             // Collisions
             this.collisionManager.setupCollisions({
-                 player: this.player, ground: this.groundGroup, pipes: this.pipesGroup, staticPlatforms: this.staticPlatformsGroup, movingPlatforms: this.movingPlatformsGroup, blocks: this.blocksGroup, zils: this.zilsGroup, cruzaks: this.cruzaksGroup, dogs: this.dogsGroup, poops: this.poopsGroup, gvozdiki: this.gvozdikiGroup, money: this.moneyGroup, meteors: this.meteorsGroup
+                 player: this.player, ground: this.groundGroup, pipes: this.pipesGroup, staticPlatforms: this.staticPlatformsGroup, movingPlatforms: this.movingPlatformsGroup, blocks: this.blocksGroup, zils: this.zilsGroup, bumblebees: this.cruzaksGroup, dogs: this.dogsGroup, poops: this.poopsGroup, gvozdiki: this.gvozdikiGroup, money: this.moneyGroup, meteors: this.meteorsGroup
             });
 
             // Player vs Flagpole overlap

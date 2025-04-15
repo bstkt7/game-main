@@ -84,7 +84,7 @@ const GameUI: React.FC<GameUIProps> = ({
       {/* Основной UI */}
       <div style={uiContainerStyle}>
         {/* Счет */}
-        <div style={scoreStyle}>Гвоздики: {score ?? 0}</div>
+        <div style={scoreStyle}>Звезды: {score ?? 0}</div>
         {/* Сложность */}
         <div style={difficultyStyle}>Сложность: {(difficulty ?? 1).toFixed(1)}</div>
         {/* Жизни */}

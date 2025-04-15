@@ -92,10 +92,10 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStart, isMobile }) => {
   };
 
   const disclaimerStyle: React.CSSProperties = {
-    fontSize: isMobile ? '0.75rem' : '1.25rem',
+    fontSize: isMobile ? '0.75rem' : '0.70rem',
     lineHeight: 1.4,
     padding: '0 2px',
-    textAlign: 'center',
+    textAlign: 'left',
   };
 
   return (
@@ -115,29 +115,14 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStart, isMobile }) => {
           onTouchStart={(e) => { e.currentTarget.style.transform = 'scale(0.97)'; e.currentTarget.style.backgroundColor = buttonHover; }}
           onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.backgroundColor = '#22c55e'; }}
         >
-          ПОГНАЛИ!
+          СТАРТ!
         </button>
-
         <div style={instructionsBoxStyle}>
-          <h2 style={instructionsTitleStyle}>Дисклеймер</h2>
-          <ul style={instructionsListStyle}>
             <li style={disclaimerStyle}> 
-              <center>ЭТО ВСЁ <h2 style={{
-                margin: isMobile ? '4px 0' : '12px 0',
-                fontSize: isMobile ? '0.85rem' : '1.5rem'
-              }}><strong style={{ ...strongStyle, color: '#f87171' }}>💩💩💩💩 вайбкодинг 💩💩💩💩</strong></h2></center>
+            ККШИ попала в беду — таинственные шершни проникли в окрестности школы и рассыпали уставы, документы, учебные материалы по всей территории школы-интерната. Некоторые из кадетских символов украдены.
+
+Кадет Пчёла — лучший кадет, и именно он отправляется в путь, чтобы вернуть порядок, собрать уставы, найти потерянные шевроны, спасти кадетов, и в финале — отстоять честь школы в поединке с Шершнем-Командиром.
             </li>
-            <li style={{
-              textAlign: 'center',
-              margin: isMobile ? '6px 0' : '12px 0',
-              fontSize: isMobile ? '0.65rem' : '0.9rem'
-            }}><strong style={{ ...strongStyle, color: '#92B904' }}>Все материалы созданы ИИ! Совпадений с реальными людьми Нет и быть не может)</strong></li>
-            <li style={{
-              textAlign: 'center',
-              fontSize: isMobile ? '0.7rem' : '1rem',
-              marginTop: isMobile ? '6px' : '16px'
-            }}>Привет <strong style={{ ...strongStyle, color: '#f87171' }}>ГАН</strong>дону)</li>
-          </ul>
         </div>
       </div>
     </div>
