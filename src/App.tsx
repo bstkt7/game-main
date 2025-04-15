@@ -1,4 +1,4 @@
-import GvozdGame from './Gvozd';
+import GvozdGame from './GvozdGame';
 import './index.css';
 
 console.log("[App.tsx] Rendering App component");

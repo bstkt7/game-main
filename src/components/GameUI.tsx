@@ -11,6 +11,9 @@ interface GameUIProps {
   onPauseToggle: () => void;
   onMuteToggle: () => void;
   onRestart: () => void;
+  onToggleFullscreen: () => void;
+  isFullscreen: boolean;
+  isMobile: boolean;
 }
 
 const GameUI: React.FC<GameUIProps> = ({
@@ -24,6 +27,9 @@ const GameUI: React.FC<GameUIProps> = ({
   onPauseToggle,
   onMuteToggle,
   onRestart,
+  onToggleFullscreen,
+  isFullscreen,
+  isMobile,
 }) => {
 
   // --- Стили ---
@@ -111,6 +117,15 @@ const GameUI: React.FC<GameUIProps> = ({
         <button style={{...buttonStyle, backgroundColor: '#6b7280', border: '1px solid #4b5563'}} onClick={onRestart}> {/* Серый */}
           Рестарт {/* Изменил текст */}
         </button>
+        {/* Кнопка полноэкранного режима (только для мобильных) */}
+        {isMobile && (
+          <button 
+            style={{...buttonStyle, backgroundColor: '#8b5cf6', border: '1px solid #6d28d9'}} 
+            onClick={onToggleFullscreen}
+          >
+            {isFullscreen ? '↗️ Выйти' : '↘️ Полный'}
+          </button>
+        )}
       </div>
 
       {/* Экран Game Over */}
