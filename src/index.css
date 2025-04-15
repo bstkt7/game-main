@@ -108,7 +108,23 @@ kbd {
   }
 } */
 
-#phaser-container:focus {
-  outline: 2px solid dodgerblue; /* Или другой заметный стиль */
-  outline-offset: -2px; /* Сместить внутрь, если нужно */
+
+@keyframes floatAnimation {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px); 
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.float-animation {
+  animation-name: floatAnimation;
+  animation-duration: 3.5s;        
+  animation-timing-function: ease-in-out; 
+  animation-iteration-count: infinite;
+  transform: translateY(0);
 }

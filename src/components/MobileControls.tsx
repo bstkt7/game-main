@@ -93,7 +93,7 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onControlChange }) => {
               }
           }}
         >
-          ←
+          ⬅
         </div>
 
         {/* Кнопка Вправо */}
@@ -110,7 +110,7 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onControlChange }) => {
                }
            }}
         >
-          →
+          ➡
         </div>
       </div>
 
@@ -131,7 +131,7 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onControlChange }) => {
                }
            }}
         >
-          ↑
+          ⬆
         </div>
       </div>
     </div>

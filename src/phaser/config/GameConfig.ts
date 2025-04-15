@@ -351,8 +351,8 @@ export const GameConfig: GameConfigDefinition = {
     platform: {
         scale: 0.27,
         depth: 7,
-        minYAboveGround: 70,
-        maxYAboveGround: 240,
+        minYAboveGround: 150,
+        maxYAboveGround: 300,
         elevatedMinSpacingX: 180,
         elevatedMaxSpacingX: 350,
         elevatedYVariation: 70,
