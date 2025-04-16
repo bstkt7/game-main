@@ -431,19 +431,54 @@ const GvozdGame: React.FC = () => {
     }, 150);
   };
 
-  // Обработчик для мобильных контролов
-  const handleMobileControl = (control: 'left' | 'right' | 'jump', active: boolean) => {
-    const playerCtrl = activeScene && typeof (activeScene as any).getPlayerControllerInstance === 'function'
-                       ? (activeScene as any).getPlayerControllerInstance()
+// Обработчик для мобильных контролов
+const handleMobileControl = (control: 'left' | 'right' | 'jump', active: boolean) => {
+    // 1. Получаем ТЕКУЩУЮ активную сцену из Phaser (надежный способ)
+    const currentActiveScene = gameRef.current?.scene.getScenes(true)[0];
+
+    if (!currentActiveScene) {
+        console.warn("[GvozdGame.tsx] handleMobileControl: Не найдена активная сцена Phaser.");
+        return;
+    }
+
+    // 2. Получаем PlayerController из ТЕКУЩЕЙ активной сцены
+    const playerCtrl = typeof (currentActiveScene as any).getPlayerControllerInstance === 'function'
+                       ? (currentActiveScene as any).getPlayerControllerInstance()
                        : null;
-    if (!playerCtrl || paused || isGameOver || !activeScene?.scene.isActive()) return;
+
+    // 3. Проверяем условия и применяем ввод
+    if (!playerCtrl || paused || isGameOver || !currentActiveScene.scene.isActive()) {
+        // Можно добавить лог, почему управление не применилось, если нужно для отладки
+        // console.log(`[GvozdGame.tsx] Mobile control ignored: playerCtrl=${!!playerCtrl}, paused=${paused}, isGameOver=${isGameOver}, sceneActive=${currentActiveScene?.scene.isActive()}`);
+        return;
+    }
+
+    // Добавим лог, чтобы видеть, в какую сцену отправляется управление
+    console.log(`[GvozdGame.tsx] Отправка мобильного управления в сцену ${currentActiveScene.scene.key}: ${control}=${active}`);
+
     try {
+      // Используем прямую установку свойств, как в обработчике клавиатуры
       switch (control) {
-        case 'left': playerCtrl.mobileInputLeft = active; break;
-        case 'right': playerCtrl.mobileInputRight = active; break;
-        case 'jump': if (active) { playerCtrl.mobileInputJump = true; } break;
+        case 'left':
+           playerCtrl.mobileInputLeft = active;
+           // Если отпустили одну кнопку, убедимся, что другая тоже отпущена (предосторожность)
+           if (!active) playerCtrl.mobileInputRight = false;
+           break;
+        case 'right':
+           playerCtrl.mobileInputRight = active;
+           if (!active) playerCtrl.mobileInputLeft = false;
+           break;
+        case 'jump':
+           // Устанавливаем флаг прыжка только при нажатии (active=true).
+           // PlayerController должен сам сбросить этот флаг после выполнения прыжка.
+           if (active) {
+             playerCtrl.mobileInputJump = true;
+           }
+           break;
       }
-    } catch (e) { console.warn("[GvozdGame.tsx] Error setting mobile input:", e); }
+    } catch (e) {
+        console.warn(`[GvozdGame.tsx] Ошибка при установке мобильного ввода для сцены ${currentActiveScene.scene.key}:`, e);
+    }
   };
 
   // --- Рендер компонента ---
