@@ -335,7 +335,7 @@ export class CollisionManager {
         const poop = poopObj as Phaser.Physics.Arcade.Sprite;
         if (!player?.active || !poop?.active) return;
         if (this.playerController.canBeHurt()) { this.playerController.applyDamage(); }
-        this.enemyManager.handlePoopHit(poop, player); // Pass player for context if needed
+        this.enemyManager.handlePoopHit(poop, player); // Передаем оба параметра: poop и player
     }
 
     // Handler for player hitting a Meteor
@@ -365,12 +365,12 @@ export class CollisionManager {
     // Handler for Meteor hitting Ground/Platforms/Pipes
     private meteorVsGroundHandler(
         meteorObj: Phaser.Types.Physics.Arcade.GameObjectWithBody | Phaser.Tilemaps.Tile,
-        groundObj: Phaser.Types.Physics.Arcade.GameObjectWithBody | Phaser.Tilemaps.Tile
+        _groundObj: Phaser.Types.Physics.Arcade.GameObjectWithBody | Phaser.Tilemaps.Tile
     ) {
         const meteor = meteorObj as Phaser.Physics.Arcade.Sprite;
         if (!meteor?.active) return;
         if (this.enemyManager) {
-            this.enemyManager.handleMeteorImpact(meteor); // Убираем лишний параметр groundObj
+            this.enemyManager.handleMeteorImpact(meteor);
         }
     }
 }
