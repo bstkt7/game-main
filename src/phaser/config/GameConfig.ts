@@ -296,7 +296,7 @@ interface GameConfigDefinition {
 
 // --- КОНСТАНТА КОНФИГУРАЦИИ ---
 export const GameConfig: GameConfigDefinition = {
-    gameWidth: 800,
+    gameWidth: 1368,
     gameHeight: 600,
     gravity: 900, // Общая гравитация мира
     maxWorldDistance: 15000, // Примерная длина уровня
@@ -311,7 +311,7 @@ export const GameConfig: GameConfigDefinition = {
         moveSpeed: 250,
         jumpSpeed: -550,            // Negative for upward jump
         stompBounceSpeed: -380,     // Player's bounce velocity after stomp
-        gravityY: 1000,
+        gravityY: 800,
         depth: 10,
         runFrames: ['r1', 'r2', 'r3', 'r4'],
         jumpFrames: ['j1', 'j2', 'j3', 'j4'],
@@ -320,16 +320,16 @@ export const GameConfig: GameConfigDefinition = {
         jumpAnimKey: 'player-jump',
         idleAnimKey: 'player-idle',
         fallAnimKey: 'player-fall',
-        runFrameRate: 8,
-        jumpFrameRate: 15,
-        idleFrameRate: 12,
+        runFrameRate: 4,
+        jumpFrameRate: 4,
+        idleFrameRate: 4,
         allowDoubleJump: true,
         initialLives: 5,
         maxLives: 10,
-        invulnerabilityDuration: 1800,
+        invulnerabilityDuration: 2000,
         powerUpDuration: 10000,
-        powerUpScaleMultiplier: 1.5,
-        powerUpJumpMultiplier: 1.2,
+        powerUpScaleMultiplier: 2,
+        powerUpJumpMultiplier: 2,
     },
 
     ground: {
@@ -340,12 +340,12 @@ export const GameConfig: GameConfigDefinition = {
     },
 
     pipe: {
-        scale: 0.23,
+        scale: 0.25,
         depth: 6,
-        seriesMinSpacing: 200,
-        seriesMaxSpacing: 300,
+        seriesMinSpacing: 300,
+        seriesMaxSpacing: 500,
         width: 55,
-        height: 70
+        height: 55
     },
 
     platform: {
@@ -364,13 +364,13 @@ export const GameConfig: GameConfigDefinition = {
     },
 
     blocks: {
-        scale: 0.12,
+        scale: 0.10,
         depth: 8,
         minCount: 3,
         maxCount: 7,
-        spacing: 49,
+        spacing: 38,
         heightAboveGround: 110,
-        bonusChance: 0.30,
+        bonusChance: 0.1,
         bumpHeight: 20,
         bumpDuration: 200,
     },
@@ -382,14 +382,14 @@ export const GameConfig: GameConfigDefinition = {
             swingAngle: 18,
             swingSpeed: 900,
             magnetRange: 200,
-            magnetSpeed: 1200,
+            magnetSpeed: 1900,
             collectDistance: 25,
-            cutsceneThreshold: 50,
+            cutsceneThreshold: 150,
         },
         money: {
             scale: 0.15,
             depth: 9,
-            spawnChance: 0.12,
+            spawnChance: 0.25,
         },
         spawnOnPlatformChance: 0.35,
         bonusItemScale: 0.35,
@@ -419,7 +419,7 @@ export const GameConfig: GameConfigDefinition = {
             patrolRange: 280,
             animKey: 'dog-run',
             animFrames: ['d1', 'd2', 'd3', 'd4'],
-            animFrameRate: 12,
+            animFrameRate: 4,
         },
         bumblebee: {
              depth: 11,
@@ -429,7 +429,7 @@ export const GameConfig: GameConfigDefinition = {
              spawnHeightOffset: -350,
              animKey: 'bumblebee_fly',
              animFrames: ['s1', 's2', 's3'],
-             animFrameRate: 10,
+             animFrameRate: 4,
              verticalRange: 40,
              verticalSpeedFactor: 0.0015
         },

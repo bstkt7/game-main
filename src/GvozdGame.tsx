@@ -457,7 +457,7 @@ const GvozdGame: React.FC = () => {
       <div ref={fullscreenContainerRef} style={getStyles(isMobile).gameContainer}>
         <div
           ref={containerRef}
-          style={{ width: '100%', height: '100%', display: started ? 'block' : 'none' }}
+          style={getStyles(isMobile).gameContainer}
           id="phaser-container"
           tabIndex={0}
           onClick={focusGameContainer}

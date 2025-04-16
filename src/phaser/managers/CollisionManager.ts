@@ -145,7 +145,7 @@ export class CollisionManager {
         const isEnemyAlive = !enemy.getData('isDead');
 
         // Проверка прыжка на врага сверху
-        const isPlayerFalling = pBody.velocity.y > 10; // Увеличиваем порог скорости падения
+        const isPlayerFalling = pBody.velocity.y > 1; // Увеличиваем порог скорости падения
         const isTouchingTop = pBody.touching.down && eBody.touching.up; // Проверка касания сверху
         
         // Улучшенная проверка на относительное положение игрока и врага
