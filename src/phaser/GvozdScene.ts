@@ -26,7 +26,6 @@ export class GvozdScene extends Phaser.Scene {
     private bottomBar!: Phaser.GameObjects.Rectangle;
     private music!: Phaser.Sound.BaseSound;
     private sounds: { [key: string]: Phaser.Sound.BaseSound } = {};
-    private staticClouds: Phaser.GameObjects.Image[] = [];
     private fireStickSprites: Phaser.GameObjects.Sprite[] = [];
     // Groups
     private groundGroup!: Phaser.Physics.Arcade.StaticGroup;
@@ -83,21 +82,18 @@ export class GvozdScene extends Phaser.Scene {
         this.registry.set('gvozdikiCollected', 0);
         this.registry.set('lives', GameConfig.player.initialLives);
         this.registry.set('isCutscenePlaying', false);
-        this.staticClouds = []; // Очищаем массив облаков при инициализации
         this.fireStickSprites = []; // Очищаем массив палок
         console.log('GvozdScene init. Muted state:', this.isMuted);
     }
 
     preload() {
         console.log('GvozdScene Preload starting...');
-        // Удалена неиспользуемая переменная basePath
         try {
             // Images
             this.load.image('background', `/assets/gvozd/bg.png`);
             this.load.image('ground', `/assets/gvozd/ground.png`);
             this.load.image('pipe', `/assets/gvozd/pipe.png`);
             this.load.image('platform', `/assets/gvozd/platform.png`);
-            this.load.image('cloud', `/assets/gvozd/cloud.png`);
             this.load.image('flagpole', `/assets/gvozd/flagpole.png`);
             this.load.image('gvozdik', `/assets/gvozd/gvozdik.png`);
             this.load.image('money', `/assets/gvozd/money.png`);
@@ -109,6 +105,7 @@ export class GvozdScene extends Phaser.Scene {
             this.load.image('poop', `/assets/gvozd/poop.png`);
             this.load.image('meteor', `/assets/gvozd/meteor.png`);
             this.load.image('fire_palka', `/assets/gvozd/fire_palka.png`);
+            this.load.image('boom', `/assets/gvozd/boom.gif`);
             for (let i = 1; i <= 4; i++) { this.load.image(`r${i}`, `/assets/gvozd/r${i}.png`); }
             for (let i = 1; i <= 4; i++) { this.load.image(`j${i}`, `/assets/gvozd/j${i}.png`); }
             for (let i = 1; i <= 4; i++) { this.load.image(`i${i}`, `/assets/gvozd/i${i}.png`); }
@@ -158,29 +155,14 @@ export class GvozdScene extends Phaser.Scene {
                 left: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
                 right: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
                 space: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
-                shift: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT) // Если используется
+                shift: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
             };
             this.input.addPointer(2);
 
-            // Background & Clouds
+            // Background
             this.background = this.add.tileSprite(0, 0, GameConfig.gameWidth, GameConfig.gameHeight, 'background')
-                .setOrigin(0, 0).setScrollFactor(0).setDepth(-10); // setScrollFactor(0) для фона
-            const cloudTextures = ['cloud'];
-            for (let i = 0; i < 8; i++) {
-                const x = Phaser.Math.Between(50, GameConfig.gameWidth - 50);
-                const y = Phaser.Math.Between(GameConfig.clouds.minY, GameConfig.clouds.maxY);
-                const scale = Phaser.Math.FloatBetween(GameConfig.clouds.minScale, GameConfig.clouds.maxScale);
-                const alpha = Phaser.Math.FloatBetween(GameConfig.clouds.minAlpha, GameConfig.clouds.maxAlpha);
-                const scrollFactor = Phaser.Math.FloatBetween(0.1, 0.4); // Горизонтальный параллакс
-                const texture = Phaser.Utils.Array.GetRandom(cloudTextures);
-                const cloud = this.add.image(x, y, texture)
-                    .setScale(scale).setAlpha(alpha).setDepth(GameConfig.clouds.depth);
-                // Устанавливаем свойства scrollFactorX и scrollFactorY
-                cloud.scrollFactorX = scrollFactor;
-                cloud.scrollFactorY = 1; // Движется с камерой по Y
-                this.staticClouds.push(cloud);
-            }
-            console.log('Background and Clouds created.');
+                .setOrigin(0, 0).setScrollFactor(0).setDepth(-10);
+            console.log('Background created.');
 
             // Groups
             this.groundGroup = this.physics.add.staticGroup();
@@ -269,24 +251,24 @@ export class GvozdScene extends Phaser.Scene {
 
     update(time: number, delta: number) {
         if (!this.cutsceneManager) {
-             console.error("CutsceneManager not initialized in GvozdScene update!");
-             if (!this.isGameOver) this.handleCriticalError("CutsceneManager not initialized");
-             return;
+            console.error("CutsceneManager not initialized in GvozdScene update!");
+            if (!this.isGameOver) this.handleCriticalError("CutsceneManager not initialized");
+            return;
         }
         if (this.isGameOver || this.scene.isPaused() || this.cutsceneManager.isCutsceneActive()) return;
 
         try {
             const playerSprite = this.playerController?.getPlayerSprite();
             if (!playerSprite?.active) {
-                 if (!this.isGameOver) { console.warn("Player inactive. Ending game."); this.endGame(false); }
-                 return;
+                if (!this.isGameOver) { console.warn("Player inactive. Ending game."); this.endGame(false); }
+                return;
             }
             const playerX = playerSprite.x;
             const cam = this.cameras.main;
             const camLeft = cam.worldView.left;
             const camRight = cam.worldView.right;
 
-            this.background.tilePositionX = cam.scrollX * 0.1; // Фон скроллится медленнее камеры
+            this.background.tilePositionX = cam.scrollX * 0.1;
 
             // Update Managers
             this.playerController.update(time, delta);
@@ -486,16 +468,6 @@ export class GvozdScene extends Phaser.Scene {
                  }
             });
 
-            // Очистка облаков (массив staticClouds)
-            this.staticClouds = this.staticClouds.filter(cloud => {
-                 // Используем мировую координату X для проверки
-                 if (cloud.active && cloud.x < cleanupLimitX - 200) { // Доп. буфер для облаков
-                      cloud.destroy();
-                      return false; // Удаляем из массива
-                 }
-                 return cloud.active; // Оставляем только активные
-            });
-
             // Очистка огненных палок (массив fireStickSprites)
             for (let i = this.fireStickSprites.length - 1; i >= 0; i--) {
                  const stick = this.fireStickSprites[i];
@@ -544,8 +516,6 @@ export class GvozdScene extends Phaser.Scene {
         this.moneyGroup?.destroy(true);
 
         // Уничтожение отдельных объектов и массивов
-        this.staticClouds.forEach(cloud => cloud.destroy());
-        this.staticClouds = []; // Очищаем массив
         this.fireStickSprites.forEach(stick => stick.destroy());
         this.fireStickSprites = []; // Очищаем массив
         this.player?.destroy();

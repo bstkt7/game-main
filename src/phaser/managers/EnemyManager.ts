@@ -391,13 +391,26 @@ export class EnemyManager {
     }
 
     // FIXED: Changed target type to 'any' (or a specific union if preferred) to avoid Tile error
-    public handleMeteorImpact(meteor: Phaser.Physics.Arcade.Sprite, _target?: any) {
-        if (!meteor?.active) return;
+    public handleMeteorImpact(meteor: Phaser.Physics.Arcade.Sprite) {
+        if (!meteor || !meteor.active) return;
+        
+        // Создаем спрайт взрыва
+        const explosion = this.scene.add.sprite(meteor.x, meteor.y, 'boom')
+            .setScale(2)
+            .setDepth(meteor.depth + 1);
+            
+        // Воспроизводим звук взрыва
         this.scene.events.emit('requestSoundPlay', 'meteor_impact');
-        if (meteor.body instanceof Phaser.Physics.Arcade.Body && (meteor.body.velocity.x !== 0 || meteor.body.velocity.y !== 0)) {
-            this.scene.cameras.main.shake( this.config.hazards.meteor.impactShakeDuration, this.config.hazards.meteor.impactShakeIntensity );
-        }
-         // Optional: Add explosion effect here
-        meteor.destroy(); // Destroy meteor on impact
+        
+        // Трясем камеру
+        this.scene.cameras.main.shake(GameConfig.hazards.meteor.impactShakeDuration, GameConfig.hazards.meteor.impactShakeIntensity);
+        
+        // Уничтожаем метеор
+        meteor.destroy();
+        
+        // Уничтожаем взрыв после анимации
+        this.scene.time.delayedCall(500, () => {
+            explosion.destroy();
+        });
     }
 }

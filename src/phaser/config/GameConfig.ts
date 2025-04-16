@@ -175,23 +175,6 @@ interface HazardsConfigDefinition {
     };
 }
 
-// Тип для Настроек Облаков
-interface CloudsConfigDefinition {
-    depth: number;
-    count: number;
-    minY: number;
-    maxY: number;
-    minScale: number;
-    maxScale: number;
-    minAlpha: number;
-    maxAlpha: number;
-    minScroll: number;
-    maxScroll: number;
-    minSpeed: number;
-    maxSpeed: number;
-    creationChance: number; // Шанс (0-1) per second
-}
-
 // Тип для Настроек Разрывов
 interface GapConfigDefinition {
     baseWidth: number;
@@ -245,7 +228,6 @@ interface MaxObjectsDefinition {
     money: number;
     meteors: number;
     fireSticks: number;
-    clouds: number;
 }
 
 // Тип для Громкости Звуков
@@ -286,7 +268,6 @@ interface GameConfigDefinition {
     collectibles: CollectiblesConfigDefinition;
     enemy: EnemyConfigDefinition;
     hazards: HazardsConfigDefinition;
-    clouds: CloudsConfigDefinition;
     gap: GapConfigDefinition;
     cutscene: CutsceneConfigDefinition;
     difficultyScaling: DifficultyScalingDefinition;
@@ -462,22 +443,6 @@ export const GameConfig: GameConfigDefinition = {
         },
     },
 
-    clouds: {
-        depth: -5,
-        count: 8,
-        minY: 40,
-        maxY: 280,
-        minScale: 0.05,
-        maxScale: 0.25,
-        minAlpha: 0.5,
-        maxAlpha: 0.85,
-        minScroll: 0.08,
-        maxScroll: 0.35,
-        minSpeed: -15,
-        maxSpeed: -45,
-        creationChance: 0.15,
-    },
-
     gap: {
         baseWidth: 90,
         maxWidth: 400,
@@ -527,7 +492,6 @@ export const GameConfig: GameConfigDefinition = {
         money: 12,
         meteors: 10,
         fireSticks: 18,
-        clouds: 25,
     },
 
     soundVolumes: {

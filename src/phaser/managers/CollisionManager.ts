@@ -347,7 +347,7 @@ export class CollisionManager {
         const meteor = meteorObj as Phaser.Physics.Arcade.Sprite;
         if (!player?.active || !meteor?.active) return;
         if (this.playerController.canBeHurt()) { this.playerController.applyDamage(); }
-        this.enemyManager.handleMeteorImpact(meteor, player); // Pass player
+        this.enemyManager.handleMeteorImpact(meteor); // Убираем лишний параметр player
     }
 
     // Handler for Enemy hitting a Pipe (used for reversal)
@@ -358,8 +358,7 @@ export class CollisionManager {
         const enemy = enemyObj as Phaser.Physics.Arcade.Sprite;
         const pipe = pipeObj; // Keep original type for passing
         if (enemy?.active && !enemy.getData('isDead') && this.enemyManager) {
-            // Pass original pipe object, let manager handle type if needed
-            this.enemyManager.handleEnemyPipeCollision(enemy, pipe as Phaser.Tilemaps.Tile | Phaser.GameObjects.GameObject);
+            this.enemyManager.handleEnemyPipeCollision(enemy, pipe);
         }
     }
 
@@ -371,8 +370,7 @@ export class CollisionManager {
         const meteor = meteorObj as Phaser.Physics.Arcade.Sprite;
         if (!meteor?.active) return;
         if (this.enemyManager) {
-            // Pass original ground object, let manager handle type if needed
-            this.enemyManager.handleMeteorImpact(meteor, groundObj); // Pass original ground object
+            this.enemyManager.handleMeteorImpact(meteor); // Убираем лишний параметр groundObj
         }
     }
 }
