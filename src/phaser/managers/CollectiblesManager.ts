@@ -144,6 +144,22 @@ export class CollectiblesManager {
          }
     }
 
+
+    public spawnGvozdikFromBlock(block: Phaser.GameObjects.Sprite) {
+        const x = block.x;
+        const y = block.y - block.displayHeight / 2; // Появление сверху блока
+    
+        const gvozdik = this.scene.physics.add.sprite(x, y, 'gvozdik');
+        gvozdik.setBounce(0.2);
+        gvozdik.setVelocity(Phaser.Math.Between(-100, 100), -200); // Летит в случайном направлении
+        gvozdik.setData('isCollected', false);
+    
+        // Устанавливаем правильный масштаб из конфига
+        gvozdik.setScale(this.config.collectibles.gvozdik.scale ?? 0.25); // или другое подходящее значение
+    
+        this.gvozdikiGroup.add(gvozdik);
+    }
+
     public handleGvozdikCollected(gvozdik: Phaser.Physics.Arcade.Sprite, showEffect: boolean = true) {
         if (!gvozdik?.active) return;
         this.removeGvozdikTween(gvozdik);

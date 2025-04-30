@@ -248,59 +248,62 @@ export class CollisionManager {
         blockObj: Phaser.Types.Physics.Arcade.GameObjectWithBody | Phaser.Tilemaps.Tile
     ) {
         const player = playerObj as Phaser.Physics.Arcade.Sprite;
-        const block = blockObj as Phaser.Physics.Arcade.Sprite | Phaser.Tilemaps.Tile; // Block could be tile or sprite
-
-        // Need to handle both Sprite and Tile cases for block body/properties
-        let blockBody: Phaser.Physics.Arcade.Body | Phaser.Physics.Arcade.StaticBody | null = null;
-        let blockGameObject: Phaser.GameObjects.GameObject | null = null; // To access getData/setData if it's a sprite
-
-        if (block instanceof Phaser.Physics.Arcade.Sprite && block.body) {
-            blockBody = block.body as Phaser.Physics.Arcade.StaticBody; // Assume static blocks
-            blockGameObject = block;
-        } else if (block instanceof Phaser.Tilemaps.Tile && (block.physics as any).arcade) {
-            // Tile collision doesn't usually have a dynamic body in the same way
-             // blockBody = block.physics.worldBody; // Accessing internal might be risky
-            // Need a different approach for tile data/animation
-             console.warn("Tile block collision - bump logic might need adjustment.");
-             // For now, let's assume blocks are sprites
-             if (!(block instanceof Phaser.Physics.Arcade.Sprite)) return; // Exit if it's a tile and we haven't handled it
-             blockBody = block.body as Phaser.Physics.Arcade.StaticBody;
-             blockGameObject = block;
-
+        const block = blockObj as Phaser.Physics.Arcade.Sprite | Phaser.Tilemaps.Tile;
+    
+        // Проверяем, является ли блок спрайтом с телом
+        if (!(block instanceof Phaser.Physics.Arcade.Sprite) || !block.body) {
+            console.warn("Block is not a valid sprite with body");
+            return;
         }
-
+    
+        const blockSprite = block as Phaser.Physics.Arcade.Sprite;
+        const blockBody = blockSprite.body as Phaser.Physics.Arcade.StaticBody;
+    
         if (!player?.active || !blockBody || !player.body || !(player.body instanceof Phaser.Physics.Arcade.Body)) return;
-
+    
         const playerBody = player.body;
-
+    
         // Hit from below
         if (playerBody.blocked.up || playerBody.touching.up) {
-            // Use blockGameObject to check/set data if it's a sprite
-            if (blockGameObject?.getData('isAnimating')) return;
-            blockGameObject?.setData('isAnimating', true);
+            if (blockSprite.getData('isAnimating')) return;
+    
+            // Увеличиваем счётчик ударов
+            let hitCount = blockSprite.getData('hitCount') || 0;
+    
+            // Если блок уже "мёртв" — выходим
+            if (blockSprite.getData('isActive') === false) return;
+    
+            hitCount += 1;
+            blockSprite.setData('hitCount', hitCount);
+            blockSprite.setData('isAnimating', true);
+    
             this.scene.events.emit('requestSoundPlay', 'blockHit');
-
-            // Perform bump tween only on the GameObject (Sprite)
-            if (blockGameObject instanceof Phaser.GameObjects.Sprite) {
-                const originalY = blockGameObject.y;
-                this.scene.tweens.add({
-                    targets: blockGameObject, y: originalY - this.config.blocks.bumpHeight,
-                    duration: this.config.blocks.bumpDuration / 2, yoyo: true, ease: 'Power1',
-                    onComplete: () => {
-                        blockGameObject?.setData('isAnimating', false);
+    
+            const originalY = blockSprite.y;
+            this.scene.tweens.add({
+                targets: blockSprite,
+                y: originalY - this.config.blocks.bumpHeight,
+                duration: this.config.blocks.bumpDuration / 2,
+                yoyo: true,
+                ease: 'Power1',
+                onComplete: () => {
+                    blockSprite.setData('isAnimating', false);
+    
+                    // Спавним один гвоздик
+                    this.collectiblesManager.spawnGvozdikFromBlock(blockSprite);
+    
+                    // Если это пятый удар — деактивируем блок
+                    if (hitCount >= 5) {
+                        blockSprite.setData('isActive', false); // Блок больше не реагирует
                         if (typeof (this.scene as any).handleBlockHit === 'function') {
-                            (this.scene as any).handleBlockHit(blockGameObject, player); // Pass sprite
-                        } else { console.warn('Scene does not have handleBlockHit method!'); }
+                            (this.scene as any).handleBlockHit(blockSprite, player);
+                        }
                     }
-                });
-            } else {
-                // Handle tile hit differently if needed (e.g., replace tile)
-                if (typeof (this.scene as any).handleBlockHit === 'function') {
-                    (this.scene as any).handleBlockHit(block, player); // Pass tile
                 }
-            }
+            });
+    
             // Optional push down
-             if (playerBody.velocity.y < 0) playerBody.velocity.y = 10;
+            if (playerBody.velocity.y < 0) playerBody.velocity.y = 10;
         }
     }
 

@@ -488,7 +488,10 @@ const handleMobileControl = (control: 'left' | 'right' | 'jump', active: boolean
         <source src="/assets/gvozd/bg.mp4" type="video/mp4" />
         Ваш браузер не поддерживает тег video.
       </video>
-
+  
+      {/* Элемент затемнения и размытия */}
+      <div className="backgroundOverlay" />
+  
       <div ref={fullscreenContainerRef} style={getStyles(isMobile).gameContainer}>
         <div
           ref={containerRef}
@@ -527,6 +530,7 @@ const handleMobileControl = (control: 'left' | 'right' | 'jump', active: boolean
       </div>
     </div>
   );
+  
 };
 
 export default GvozdGame;

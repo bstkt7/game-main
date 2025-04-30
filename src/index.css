@@ -53,6 +53,17 @@ kbd {
 }
 
 
+.backgroundOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Затемнение */
+  backdrop-filter: blur(5px); /* Размытие */
+  z-index: 1; /* Убедитесь, что этот слой выше видео */
+}
+
 
 /* Стили для мобильных кнопок (MobileControls.css или index.css) */
 
