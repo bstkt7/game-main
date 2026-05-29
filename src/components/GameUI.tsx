@@ -44,18 +44,36 @@ const GameUI: React.FC<GameUIProps> = ({
       borderRadius: '4px', display: 'inline-block',
   };
   const scoreStyle: React.CSSProperties = {
-      position: 'absolute', top: '60px', left: '16px', fontSize: '16px', ...textBgStyle
+      position: 'absolute',
+      top: 'calc(60px + env(safe-area-inset-top))',
+      left: 'calc(16px + env(safe-area-inset-left))',
+      fontSize: '16px',
+      ...textBgStyle
   };
   const difficultyStyle: React.CSSProperties = {
-      position: 'absolute', top: '90px', left: '16px', fontSize: '16px', ...textBgStyle
+      position: 'absolute',
+      top: 'calc(90px + env(safe-area-inset-top))',
+      left: 'calc(16px + env(safe-area-inset-left))',
+      fontSize: '16px',
+      ...textBgStyle
   };
   const livesContainerStyle: React.CSSProperties = {
-      position: 'absolute', top: '15px', left: '16px', display: 'flex', gap: '5px',
+      position: 'absolute',
+      top: 'calc(15px + env(safe-area-inset-top))',
+      left: 'calc(16px + env(safe-area-inset-left))',
+      display: 'flex',
+      gap: '5px',
   };
   const lifeIconStyle: React.CSSProperties = { width: '25px', height: 'auto' };
   const buttonsContainerStyle: React.CSSProperties = {
-    position: 'absolute', top: '16px', right: '16px', display: 'flex',
-    flexDirection: 'column', gap: '8px', pointerEvents: 'auto', zIndex: 30,
+    position: 'absolute',
+    top: 'calc(16px + env(safe-area-inset-top))',
+    right: 'calc(16px + env(safe-area-inset-right))',
+    display: 'flex',
+    flexDirection: isMobile ? 'row' : 'column',
+    gap: '8px',
+    pointerEvents: 'auto',
+    zIndex: 30,
   };
   // --- СТИЛЬ КНОПОК ---
   const buttonStyle: React.CSSProperties = {

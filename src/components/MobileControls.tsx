@@ -42,9 +42,9 @@ const MobileControls: React.FC<MobileControlsProps> = ({ onControlChange }) => {
   // Inline стили для позиционирования контейнеров
   const controlsContainerStyle: React.CSSProperties = {
     position: 'absolute',
-    bottom: '20px',
-    left: '20px',
-    right: '20px',
+    bottom: 'calc(25px + env(safe-area-inset-bottom))',
+    left: 'calc(30px + env(safe-area-inset-left))',
+    right: 'calc(30px + env(safe-area-inset-right))',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-end', // Выравниваем кнопки по нижнему краю

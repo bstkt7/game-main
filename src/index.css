@@ -8,6 +8,7 @@ body, html {
   width: 100%;
   height: 100%;
   overflow: hidden; /* Запрещаем скролл всей страницы */
+  overscroll-behavior: none; /* Предотвращаем резиновый скролл */
   /* Применяем шрифт ко всей странице, с запасным вариантом */
   font-family: 'Press Start 2P', cursive;
   color: white; /* Основной цвет текста */
@@ -23,6 +24,14 @@ body, html {
 
 * {
   box-sizing: border-box;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea {
+  -webkit-user-select: auto;
+  user-select: auto;
 }
 
 /* Переопределяем шрифт для кнопок, чтобы он наследовался или был таким же */
@@ -69,8 +78,8 @@ kbd {
 
 .mobileButton {
   /* Размеры и форма */
-  width: 65px; /* Немного уменьшил для тачскринов */
-  height: 65px;
+  width: 80px; /* Увеличено для лучшей доступности на мобильных */
+  height: 80px;
   border-radius: 50%; /* Круглые */
 
   /* Внешний вид */
@@ -83,7 +92,7 @@ kbd {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 30px; /* Размер стрелки */
+  font-size: 36px; /* Стрелка больше */
   font-weight: bold; /* Жирная стрелка */
 
   /* Поведение */
@@ -91,6 +100,7 @@ kbd {
   user-select: none; /* Запрет выделения текста */
   -webkit-tap-highlight-color: transparent; /* Убираем подсветку при тапе на iOS */
   pointer-events: auto; /* Кнопка должна ловить события */
+  touch-action: none; /* Отключаем стандартные жесты и задержку тапа */
 
   /* Плавный переход для эффекта нажатия */
   transition: background-color 0.05s ease-out, transform 0.05s ease-out;
@@ -98,9 +108,9 @@ kbd {
 
 /* Стили для кнопки прыжка (больший размер) */
 .mobileButton.jumpButton {
-  width: 75px; /* Больше */
-  height: 75px;
-  font-size: 40px; /* Стрелка больше */
+  width: 95px; /* Увеличено */
+  height: 95px;
+  font-size: 42px; /* Стрелка больше */
 }
 
 /* Стиль для АКТИВНОЙ (нажатой) кнопки */
@@ -138,4 +148,19 @@ kbd {
   animation-timing-function: ease-in-out; 
   animation-iteration-count: infinite;
   transform: translateY(0);
+}
+
+@keyframes rotatePhone {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(90deg); }
+  50% { transform: rotate(90deg); }
+  75% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.rotate-phone-animation {
+  animation: rotatePhone 2s infinite ease-in-out;
+  display: inline-block;
+  font-size: 50px;
+  margin-bottom: 20px;
 }

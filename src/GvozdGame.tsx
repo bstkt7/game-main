@@ -22,7 +22,7 @@ const getStyles = (isMobile: boolean): { [key: string]: React.CSSProperties } =>
     alignItems: 'center', 
     justifyContent: 'center', 
     color: 'white', 
-    minHeight: '100vh', 
+    minHeight: isMobile ? '100dvh' : '100vh', 
     width: '100vw', 
     padding: isMobile ? '0' : '10px', 
     boxSizing: 'border-box', 
@@ -37,9 +37,9 @@ const getStyles = (isMobile: boolean): { [key: string]: React.CSSProperties } =>
     overflow: 'hidden', 
     backgroundColor: '#000000', 
     width: '100%', 
-    height: isMobile ? '100vh' : 'auto', 
+    height: isMobile ? '100dvh' : 'auto', 
     maxWidth: isMobile ? '100vw' : `${GameConfig.gameWidth}px`, 
-    maxHeight: isMobile ? '100vh' : `calc(100vh - 40px)`, 
+    maxHeight: isMobile ? '100dvh' : `calc(100vh - 40px)`, 
     aspectRatio: isMobile ? 'auto' : `${GameConfig.gameWidth} / ${GameConfig.gameHeight}`, 
     margin: isMobile ? '0' : 'auto' 
   },
@@ -54,6 +54,33 @@ const getStyles = (isMobile: boolean): { [key: string]: React.CSSProperties } =>
     opacity: 0.7,
     display: isMobile ? 'none' : 'block' 
   },
+  globalRotationOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+    zIndex: 9999,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'white',
+    padding: '20px',
+    textAlign: 'center',
+    boxSizing: 'border-box',
+  },
+  rotateIcon: {
+    fontSize: '50px',
+    marginBottom: '20px',
+  },
+  rotateText: {
+    fontFamily: "'Press Start 2P', cursive",
+    fontSize: '14px',
+    lineHeight: '1.8',
+    color: '#f3f4f6',
+  }
 });
 
 const GvozdGame: React.FC = () => {
@@ -98,14 +125,24 @@ const GvozdGame: React.FC = () => {
     checkMobile();
     checkOrientation();
     
-    window.addEventListener('resize', () => {
+    const handleResize = () => {
       checkMobile();
       checkOrientation();
-    });
+      if (gameRef.current) {
+        setTimeout(() => {
+          try {
+            gameRef.current?.scale.refresh();
+          } catch (e) {
+            console.warn("[GvozdGame.tsx] Error refreshing game scale:", e);
+          }
+        }, 150);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
     
     return () => {
-      window.removeEventListener('resize', checkMobile);
-      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
@@ -418,6 +455,13 @@ const GvozdGame: React.FC = () => {
     const newMutedState = !muted;
     setMuted(newMutedState);
     gameRef.current?.sound.setMute(newMutedState);
+    
+    // Синхронизируем состояние с активной сценой
+    const activeSceneInstance = gameRef.current?.scene.getScenes(true)[0];
+    if (activeSceneInstance && typeof (activeSceneInstance as any).setMuteState === 'function') {
+      (activeSceneInstance as any).setMuteState(newMutedState);
+    }
+    
     console.log(`[GvozdGame.tsx] Mute toggled: ${newMutedState}`);
     focusGameContainer();
   };
@@ -484,6 +528,15 @@ const handleMobileControl = (control: 'left' | 'right' | 'jump', active: boolean
   // --- Рендер компонента ---
   return (
     <div style={getStyles(isMobile).pageWrapper}>
+      {isMobile && isPortrait && (
+        <div style={getStyles(isMobile).globalRotationOverlay}>
+          <div className="rotate-phone-animation" style={getStyles(isMobile).rotateIcon}>⟳</div>
+          <div style={getStyles(isMobile).rotateText}>
+            Пожалуйста, переверните устройство в горизонтальный режим
+          </div>
+        </div>
+      )}
+
       <video style={getStyles(isMobile).backgroundVideo} autoPlay loop muted playsInline preload="auto">
         <source src="/assets/gvozd/bg.mp4" type="video/mp4" />
         Ваш браузер не поддерживает тег video.

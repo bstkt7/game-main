@@ -87,24 +87,42 @@ const StartScreen: React.FC<StartScreenProps> = ({ onStart, isMobile, isPortrait
   // Эффект для фоновой музыки
   useEffect(() => {
     const audioElement = audioRef.current;
-    if (audioElement) {
-      audioElement.loop = true;
-      const playPromise = audioElement.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(_ => {
-            console.log('Background music started playing.');
-          })
-          .catch(error => {
-            console.warn('Background music autoplay was prevented.', error);
-          });
-      }
+    if (!audioElement) return;
+
+    audioElement.loop = true;
+
+    const playAudio = () => {
+      audioElement.play()
+        .then(() => {
+          console.log('Background music started playing on interaction.');
+          // Remove interaction listeners once playing successfully
+          window.removeEventListener('click', playAudio);
+          window.removeEventListener('touchstart', playAudio);
+        })
+        .catch(error => {
+          console.warn('Background music play failed on interaction:', error);
+        });
+    };
+
+    const playPromise = audioElement.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(_ => {
+          console.log('Background music started playing.');
+        })
+        .catch(error => {
+          console.warn('Background music autoplay was prevented, listening for interaction.', error);
+          // Listen for interaction to play
+          window.addEventListener('click', playAudio);
+          window.addEventListener('touchstart', playAudio);
+        });
     }
+
     return () => {
-      if (audioElement) {
-        audioElement.pause();
-        console.log('Background music paused on unmount.');
-      }
+      audioElement.pause();
+      window.removeEventListener('click', playAudio);
+      window.removeEventListener('touchstart', playAudio);
+      console.log('Background music paused on unmount.');
     };
   }, []);
 
