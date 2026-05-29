@@ -220,11 +220,9 @@ export class EnemyManager {
              if (isBlockedRight && direction > 0) {
                  direction = -1;
                  enemy.setData('direction', direction);
-                 console.log(`Zil blocked right, turning left at x=${enemy.x}`);
              } else if (isBlockedLeft && direction < 0) {
                  direction = 1;
                  enemy.setData('direction', direction);
-                 console.log(`Zil blocked left, turning right at x=${enemy.x}`);
              }
              
              // Проверяем, не вышел ли враг за пределы патрулирования
@@ -246,27 +244,29 @@ export class EnemyManager {
              if (isOnFloor && Math.abs(body.velocity.x) < speed * 0.5) {
                  enemy.setVelocityX(speed * direction);
              }
-         } else if (enemyType === 'bumblebee') {
-             const startY=enemy.getData('startY');
-             const verticalRange=enemy.getData('verticalRange');
-             const verticalSpeedFactor=enemy.getData('verticalSpeedFactor');
-             if(startY!==undefined&&verticalRange!==undefined&&verticalSpeedFactor!==undefined){
-                 const targetY=startY+Math.sin(time*verticalSpeedFactor)*verticalRange;
-                 enemy.y=targetY;
+          } else if (enemyType === 'bumblebee') {
+             const startY = enemy.getData('startY');
+             const verticalRange = enemy.getData('verticalRange');
+             const verticalSpeedFactor = enemy.getData('verticalSpeedFactor');
+             if (startY !== undefined && verticalRange !== undefined && verticalSpeedFactor !== undefined) {
+                 const targetY = startY + Math.sin(time * verticalSpeedFactor) * verticalRange;
+                 // Использование P-регулятора для плавного перемещения с помощью физической скорости.
+                 const targetVelocityY = (targetY - enemy.y) * 15;
+                 enemy.setVelocityY(targetVelocityY);
              }
-             if(range>0){
-                 if(direction<0&&enemy.x<startX-range){
-                     direction=1;
-                 }else if(direction>0&&enemy.x>startX+range){
-                     direction=-1;
+             if (range > 0) {
+                 if (direction < 0 && enemy.x < startX - range) {
+                     direction = 1;
+                 } else if (direction > 0 && enemy.x > startX + range) {
+                     direction = -1;
                  }
              }
-             if(direction!==enemy.getData('direction')){
-                 enemy.setData('direction',direction);
-                 enemy.setVelocityX(speed*direction);
-                 enemy.setFlipX(direction>0);
+             if (direction !== enemy.getData('direction')) {
+                 enemy.setData('direction', direction);
+                 enemy.setVelocityX(speed * direction);
+                 enemy.setFlipX(direction > 0);
              }
-         }
+          }
     }
 
     private updateEnemyPatrolAndShoot(enemy: Phaser.Physics.Arcade.Sprite, time: number, playerSprite: Phaser.GameObjects.Sprite) {
@@ -280,14 +280,10 @@ export class EnemyManager {
         if (!enemy || !enemy.active || enemy.getData('isDead')) return;
         
         console.log(`Enemy ${enemy.getData('type')} was stomped!`);
-        
-        // Помечаем врага как мертвого
         enemy.setData('isDead', true);
-        
-        // Воспроизводим звук прыжка на врага
         this.scene.events.emit('requestSoundPlay', 'enemyStomp');
-        
-        // Останавливаем анимацию
+        // Тряска камеры при топании
+        this.scene.cameras.main.shake(120, 0.008);
         enemy.stop(); 
         
         // Добавляем эффект "сплющивания" врага
@@ -360,15 +356,9 @@ export class EnemyManager {
             
             // Обновляем данные зила
             enemy.setData('direction', newDirection);
-            
-            // Меняем скорость и направление спрайта
             const speed = enemy.getData('speed') || this.config.enemy.zil.speeds[0];
             enemy.setVelocityX(speed * newDirection);
             enemy.setFlipX(newDirection > 0);
-            
-            console.log(`Zil direction changed to ${newDirection} at x=${enemy.x}`);
-            
-            // Добавляем небольшую задержку перед изменением направления, чтобы избежать застревания
             this.scene.time.delayedCall(100, () => {
                 if (enemy?.active && !enemy.getData('isDead')) {
                     // Проверяем, не заблокирован ли зил с обеих сторон

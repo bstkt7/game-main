@@ -78,45 +78,56 @@ kbd {
 
 .mobileButton {
   /* Размеры и форма */
-  width: 80px; /* Увеличено для лучшей доступности на мобильных */
+  width: 80px;
   height: 80px;
-  border-radius: 50%; /* Круглые */
+  border-radius: 50%;
 
-  /* Внешний вид */
-  background-color: rgba(200, 200, 200, 0.5); /* Полупрозрачный серый */
-  border: 2px solid rgba(255, 255, 255, 0.6); /* Светлая граница */
-  color: white; /* Цвет стрелки */
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4); /* Тень */
+  /* Внешний вид — градиент для премиального вида */
+  background: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.55) 0%, rgba(120,160,220,0.35) 60%, rgba(60,80,140,0.45) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.65);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.3);
 
   /* Текст и выравнивание */
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 36px; /* Стрелка больше */
-  font-weight: bold; /* Жирная стрелка */
+  font-size: 36px;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 
   /* Поведение */
-  cursor: pointer; /* Курсор для десктопа */
-  user-select: none; /* Запрет выделения текста */
-  -webkit-tap-highlight-color: transparent; /* Убираем подсветку при тапе на iOS */
-  pointer-events: auto; /* Кнопка должна ловить события */
-  touch-action: none; /* Отключаем стандартные жесты и задержку тапа */
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
+  touch-action: none;
 
-  /* Плавный переход для эффекта нажатия */
-  transition: background-color 0.05s ease-out, transform 0.05s ease-out;
+  /* Плавный переход */
+  transition: background 0.08s ease-out, transform 0.08s ease-out, box-shadow 0.08s ease-out;
 }
 
 /* Стили для кнопки прыжка (больший размер) */
 .mobileButton.jumpButton {
-  width: 95px; /* Увеличено */
+  width: 95px;
   height: 95px;
-  font-size: 42px; /* Стрелка больше */
+  font-size: 42px;
+  background: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.6) 0%, rgba(100,200,140,0.35) 60%, rgba(30,100,60,0.5) 100%);
+  box-shadow: 0 4px 16px rgba(0,180,80,0.4), inset 0 1px 2px rgba(255,255,255,0.3);
 }
 
 /* Стиль для АКТИВНОЙ (нажатой) кнопки */
 .mobileButton.active {
-  background-color: rgba(255, 255, 255, 0.7); /* Становится светлее */
-  transform: scale(0.95); /* Немного уменьшается */
+  background: radial-gradient(circle, rgba(255,255,255,0.85) 0%, rgba(200,220,255,0.65) 100%);
+  transform: scale(0.9);
+  box-shadow: 0 0 18px rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.4);
+  animation: buttonPulse 0.15s ease-out;
+}
+
+@keyframes buttonPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(0.88); }
+  100% { transform: scale(0.9); }
 }
 
 /* Можно добавить стили при наведении для десктопа, если хотите */
@@ -130,6 +141,19 @@ kbd {
 } */
 
 
+/* === Анимация пульса для экрана паузы === */
+@keyframes pausePulse {
+  0%   { transform: scale(1);    opacity: 1; }
+  50%  { transform: scale(1.08); opacity: 0.85; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+.pulse-animation {
+  animation: pausePulse 1.2s ease-in-out infinite;
+  display: inline-block;
+}
+
+/* === Float === */
 @keyframes floatAnimation {
   0% {
     transform: translateY(0px);

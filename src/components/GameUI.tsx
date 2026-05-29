@@ -101,6 +101,12 @@ const GameUI: React.FC<GameUIProps> = ({
        pointerEvents: 'auto', color: victory ? '#22c55e' : '#ef4444', fontSize: '36px',
        textAlign: 'center', lineHeight: 1.4,
    };
+   const pauseOverlayStyle: React.CSSProperties = {
+       position: 'absolute', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.65)', display: 'flex',
+       flexDirection: 'column', justifyContent: 'center', alignItems: 'center', zIndex: 25,
+       pointerEvents: 'auto', color: '#eab308', fontSize: '36px',
+       textAlign: 'center', lineHeight: 1.4,
+   };
   // --- Конец стилей ---
 
   return (
@@ -124,27 +130,61 @@ const GameUI: React.FC<GameUIProps> = ({
         {/* Сделаем стиль кнопки Пауза/Продолжить немного другим */}
         <button
             style={{...buttonStyle, backgroundColor: '#eab308', border: '1px solid #ca8a04'}} // Желтый
-            onClick={onPauseToggle}
+            onClick={(e) => { e.currentTarget.blur(); onPauseToggle(); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             disabled={isGameOver}
         >
           {paused && !isGameOver ? 'Продолжить' : 'Пауза'}
         </button>
-        <button style={{...buttonStyle, backgroundColor: '#3b82f6', border: '1px solid #1d4ed8'}} onClick={onMuteToggle}> {/* Синий */}
+        <button 
+            style={{...buttonStyle, backgroundColor: '#3b82f6', border: '1px solid #1d4ed8'}} 
+            onClick={(e) => { e.currentTarget.blur(); onMuteToggle(); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+        > {/* Синий */}
           {muted ? '🔊 Звук' : '🔇 Звук'} {/* Изменил текст */}
         </button>
-        <button style={{...buttonStyle, backgroundColor: '#6b7280', border: '1px solid #4b5563'}} onClick={onRestart}> {/* Серый */}
+        <button 
+            style={{...buttonStyle, backgroundColor: '#6b7280', border: '1px solid #4b5563'}} 
+            onClick={(e) => { e.currentTarget.blur(); onRestart(); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+        > {/* Серый */}
           Рестарт {/* Изменил текст */}
         </button>
         {/* Кнопка полноэкранного режима (только для мобильных) */}
         {isMobile && (
           <button 
             style={{...buttonStyle, backgroundColor: '#8b5cf6', border: '1px solid #6d28d9'}} 
-            onClick={onToggleFullscreen}
+            onClick={(e) => { e.currentTarget.blur(); onToggleFullscreen(); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
           >
             {isFullscreen ? '↗️ Выйти' : '↘️ Полный'}
           </button>
         )}
       </div>
+
+      {/* Экран паузы */}
+      {paused && !isGameOver && (
+          <div style={pauseOverlayStyle}>
+              <div className="pulse-animation" style={{ marginBottom: '20px' }}>ПАУЗА</div>
+              <button
+                  style={{ ...buttonStyle, backgroundColor: '#4f46e5', border:'1px solid #3730a3' }} // Фиолетовый
+                  onClick={(e) => { e.currentTarget.blur(); onPauseToggle(); }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+              >
+                  Продолжить
+              </button>
+          </div>
+      )}
 
       {/* Экран Game Over */}
       {isGameOver && (
@@ -154,7 +194,10 @@ const GameUI: React.FC<GameUIProps> = ({
               <button
                   // Используем базовый стиль кнопки, но меняем цвет и отступ
                   style={{ ...buttonStyle, marginTop: '30px', backgroundColor: '#4f46e5', border:'1px solid #3730a3' }} // Фиолетовый
-                  onClick={onRestart}
+                  onClick={(e) => { e.currentTarget.blur(); onRestart(); }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
               >
                   Заново {/* Изменил текст */}
               </button>

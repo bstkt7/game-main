@@ -101,7 +101,7 @@ const GvozdGame: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  console.log("[GvozdGame.tsx] Component rendering, started:", started, "activeScene:", !!activeScene);
+  // console.log("[GvozdGame.tsx] Component rendering, started:", started, "activeScene:", !!activeScene);
 
   // --- Функция для установки фокуса ---
   const focusGameContainer = useCallback(() => {
@@ -300,7 +300,7 @@ const GvozdGame: React.FC = () => {
                               typeof (activeScene as any).getCurrentDifficulty === 'function';
 
       if (sceneHasMethods) {
-          console.log("[GvozdGame.tsx] Starting UI Update Interval for scene:", activeScene.scene.key);
+          // console.log("[GvozdGame.tsx] Starting UI Update Interval for scene:", activeScene.scene.key);
           intervalId = window.setInterval(() => {
             if (activeScene && activeScene.scene.isActive() && !activeScene.scene.isPaused()) {
               try {
@@ -321,7 +321,7 @@ const GvozdGame: React.FC = () => {
     }
     return () => {
       if (intervalId) {
-        console.log("[GvozdGame.tsx] Clearing UI Update Interval");
+        // console.log("[GvozdGame.tsx] Clearing UI Update Interval");
         clearInterval(intervalId);
       }
     };
@@ -332,7 +332,7 @@ const GvozdGame: React.FC = () => {
     if (!started || paused || isGameOver) {
       return;
     }
-    console.log("[GvozdGame.tsx] Adding GLOBAL keyboard listeners");
+    // console.log("[GvozdGame.tsx] Adding GLOBAL keyboard listeners");
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const currentActiveScene = gameRef.current?.scene.getScenes(true)[0];
@@ -402,7 +402,7 @@ const GvozdGame: React.FC = () => {
     window.addEventListener('keyup', handleKeyUp);
 
     return () => {
-      console.log("[GvozdGame.tsx] Removing GLOBAL keyboard listeners");
+      // console.log("[GvozdGame.tsx] Removing GLOBAL keyboard listeners");
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
        const currentActiveScene = gameRef.current?.scene.getScenes(true)[0];
@@ -498,7 +498,7 @@ const handleMobileControl = (control: 'left' | 'right' | 'jump', active: boolean
     }
 
     // Добавим лог, чтобы видеть, в какую сцену отправляется управление
-    console.log(`[GvozdGame.tsx] Отправка мобильного управления в сцену ${currentActiveScene.scene.key}: ${control}=${active}`);
+    // console.log(`[GvozdGame.tsx] Отправка мобильного управления в сцену ${currentActiveScene.scene.key}: ${control}=${active}`);
 
     try {
       // Используем прямую установку свойств, как в обработчике клавиатуры

@@ -46,6 +46,8 @@ export class CaveScene extends Phaser.Scene {
         if (!block.getData('used')) {
             block.setData('used', true);
             this.playSound('blockHit');
+            // Тряска камеры при ударе по блоку
+            this.cameras.main.shake(80, 0.005);
             if (this.textures.exists('cave_used_block')) {
                 block.setTexture('cave_used_block');
             }
@@ -361,7 +363,6 @@ export class CaveScene extends Phaser.Scene {
             const p2y = stick.y + rotatedBottomY;
             const stickLine = new Phaser.Geom.Line(p1x, p1y, p2x, p2y);
             if (Phaser.Geom.Intersects.LineToRectangle(stickLine, playerBounds)) {
-                console.log("Player hit by Fire Stick in Cave!");
                 this.playerController.applyDamage();
                 this.playSound('playerDamage');
                 break;

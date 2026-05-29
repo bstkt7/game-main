@@ -118,6 +118,7 @@ export class PlayerController {
         else if (justPressedJump && !touchingDown && this.canDoubleJump && this.config.allowDoubleJump) {
             this.performJump();
             this.canDoubleJump = false;
+            this.performDoubleJumpSpin();
         }
 
         // --- Animation in Air ---
@@ -136,8 +137,25 @@ export class PlayerController {
         if (this.isPoweredUp) { jumpVelocity *= this.config.powerUpJumpMultiplier; }
         (this.player.body as Phaser.Physics.Arcade.Body).setVelocityY(jumpVelocity);
         this.playSound('jump');
-        this.playAnimation(this.config.jumpAnimKey, false); // Play jump anim, don't ignore if playing
-        this.lastJumpTime = 0; // Reset coyote time eligibility
+        this.playAnimation(this.config.jumpAnimKey, false);
+        this.lastJumpTime = 0;
+    }
+
+    /** Plays a 360-degree spin tween on double jump for visual feedback. */
+    private performDoubleJumpSpin() {
+        if (!this.player?.active) return;
+        // Kill any existing spin tween before starting a new one
+        this.scene.tweens.killTweensOf(this.player);
+        this.player.setAngle(0);
+        this.scene.tweens.add({
+            targets: this.player,
+            angle: 360,
+            duration: 320,
+            ease: 'Cubic.easeOut',
+            onComplete: () => {
+                if (this.player?.active) this.player.setAngle(0);
+            }
+        });
     }
 
     // --- Added / Updated Methods ---
@@ -169,8 +187,6 @@ export class PlayerController {
             
             // Воспроизводим звук отскока
             this.playSound('jump');
-            
-            console.log("Player bounced after stomping enemy with speed:", bounceSpeed);
         }
     }
 
@@ -181,9 +197,7 @@ export class PlayerController {
         this.lives--;
         this.scene.registry.set('lives', this.lives); // Update global lives count
         this.playSound('playerDamage'); // Use helper method
-        this.scene.cameras.main.shake(150, 0.008); // Screen shake
-
-        console.log(`Player damaged! Lives remaining: ${this.lives}`);
+        this.scene.cameras.main.shake(150, 0.01); // Screen shake
 
         // If powered up, lose power-up (optional behavior)
         if (this.isPoweredUp) {

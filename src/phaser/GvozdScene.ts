@@ -52,6 +52,8 @@ export class GvozdScene extends Phaser.Scene {
         if (!block.getData('used')) {
             block.setData('used', true);
             this.playSound('blockHit');
+            // Тряска камеры при ударе по блоку
+            this.cameras.main.shake(80, 0.005);
             if (this.textures.exists('used_block')) {
                 block.setTexture('used_block');
             }
@@ -198,7 +200,7 @@ export class GvozdScene extends Phaser.Scene {
             this.enemyManager = new EnemyManager(this, { zils: this.zilsGroup, bumblebees: this.cruzaksGroup, dogs: this.dogsGroup, poops: this.poopsGroup, meteors: this.meteorsGroup }, this.playerController);
             // Передаем 'ground' как 7-й аргумент
             this.worldGenerator = new WorldGenerator(this, { ground: this.groundGroup, pipes: this.pipesGroup, staticPlatforms: this.staticPlatformsGroup, movingPlatforms: this.movingPlatformsGroup, flagpole: this.flagpoleGroup, blocks: this.blocksGroup }, this.fireStickSprites, this.enemyManager, this.collectiblesManager, this.player, 'ground');
-            this.collisionManager = new CollisionManager(this, this.playerController, this.enemyManager, this.collectiblesManager); // Передаем 'this' как Phaser.Scene
+            this.collisionManager = new CollisionManager(this, this.playerController, this.enemyManager, this.collectiblesManager);
             const groupsToClearForCutscene = [this.pipesGroup, this.staticPlatformsGroup, this.movingPlatformsGroup, this.blocksGroup, this.zilsGroup, this.cruzaksGroup, this.dogsGroup, this.poopsGroup, this.gvozdikiGroup, this.moneyGroup, this.meteorsGroup].filter(g => g);
             this.cutsceneManager = new CutsceneManager(this, this.playerController, groupsToClearForCutscene, { top: this.topBar, bottom: this.bottomBar });
             this.uiManager = new UIManager(this);
@@ -306,10 +308,9 @@ export class GvozdScene extends Phaser.Scene {
              // Расчет линии палки
              const angleRad = Phaser.Math.DegToRad(stick.angle); const length = stick.displayHeight; const originOffsetY = length * stick.originY; const topRelX = 0; const topRelY = -originOffsetY; const bottomRelX = 0; const bottomRelY = length - originOffsetY; const cosA = Math.cos(angleRad); const sinA = Math.sin(angleRad); const rotatedTopX = topRelX * cosA - topRelY * sinA; const rotatedTopY = topRelX * sinA + topRelY * cosA; const rotatedBottomX = bottomRelX * cosA - bottomRelY * sinA; const rotatedBottomY = bottomRelX * sinA + bottomRelY * cosA; const p1x = stick.x + rotatedTopX; const p1y = stick.y + rotatedTopY; const p2x = stick.x + rotatedBottomX; const p2y = stick.y + rotatedBottomY; const stickLine = new Phaser.Geom.Line(p1x, p1y, p2x, p2y);
              if (Phaser.Geom.Intersects.LineToRectangle(stickLine, playerBounds)) {
-                  console.log("Player hit by Fire Stick!");
                   this.playerController.applyDamage();
                   this.playSound('playerDamage');
-                  break; // Выходим из цикла после первого попадания за кадр
+                  break;
              }
         }
     }

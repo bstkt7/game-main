@@ -130,12 +130,12 @@ export class CollisionManager {
         const enemy = enemyObj as Phaser.Physics.Arcade.Sprite;
 
         if (!player?.active || !enemy?.active || !player.body || !enemy.body) {
-            console.log("Stomp check failed: inactive objects or missing bodies");
+            // console.log("Stomp check failed: inactive objects or missing bodies");
             return false;
         }
         
         if (!(player.body instanceof Phaser.Physics.Arcade.Body) || !(enemy.body instanceof Phaser.Physics.Arcade.Body)) {
-            console.log("Stomp check failed: invalid body types");
+            // console.log("Stomp check failed: invalid body types");
             return false;
         }
 
@@ -156,27 +156,27 @@ export class CollisionManager {
         // Проверка на тип врага (все варианты зилов и собаки)
         const isStompableEnemy = enemyType === 'zil' || enemyType === 'zil_fast' || enemyType === 'zil_big' || enemyType === 'dog';
 
-        console.log(`Stomp check for ${enemyType}: falling=${isPlayerFalling}, touching=${isTouchingTop}, alive=${isEnemyAlive}, above=${isPlayerAboveEnemy}, stompable=${isStompableEnemy}`);
-        console.log(`Player velocity: y=${pBody.velocity.y}, touching: down=${pBody.touching.down}, up=${eBody.touching.up}`);
-        console.log(`Position check: playerBottom=${playerBottom}, enemyTop=${enemyTop}, diff=${enemyTop - playerBottom}`);
+        // console.log(`Stomp check for ${enemyType}: falling=${isPlayerFalling}, touching=${isTouchingTop}, alive=${isEnemyAlive}, above=${isPlayerAboveEnemy}, stompable=${isStompableEnemy}`);
+        // console.log(`Player velocity: y=${pBody.velocity.y}, touching: down=${pBody.touching.down}, up=${eBody.touching.up}`);
+        // console.log(`Position check: playerBottom=${playerBottom}, enemyTop=${enemyTop}, diff=${enemyTop - playerBottom}`);
 
         // Для шмелей всегда возвращаем false, чтобы они не наносили урон
         if (enemyType === 'bumblebee') {
-            console.log(`Bumblebee collision ignored - no damage`);
+            // console.log(`Bumblebee collision ignored - no damage`);
             return false;
         }
 
         // Проверяем все условия для прыжка на врага
         if (isStompableEnemy && isEnemyAlive && isPlayerFalling && (isTouchingTop || isPlayerAboveEnemy)) {
             // --- Произошел прыжок на врага ---
-            console.log(`Player stomped on ${enemyType}! Processing stomp...`);
+            // console.log(`Player stomped on ${enemyType}! Processing stomp...`);
             
             // Вызываем обработчик прыжка на врага
             this.enemyManager.handleEnemyStomped(enemy, player);
             
             // Проверка наличия метода перед вызовом
             if (typeof this.playerController.triggerStompBounce === 'function') {
-                console.log("Calling triggerStompBounce");
+                // console.log("Calling triggerStompBounce");
                 this.playerController.triggerStompBounce(); // Обработка отскока игрока
             } else {
                 console.error("PlayerController missing 'triggerStompBounce' method!");
@@ -189,12 +189,12 @@ export class CollisionManager {
         
         // Если не прыжок, но враг мертв, не обрабатываем столкновение
         if (!isEnemyAlive) {
-            console.log(`Enemy ${enemyType} is already dead, ignoring collision`);
+            // console.log(`Enemy ${enemyType} is already dead, ignoring collision`);
             return false;
         }
         
         // Разрешаем стандартное столкновение, если не прыжок И враг еще не мертв
-        console.log(`No stomp detected for ${enemyType}, proceeding with normal collision`);
+        // console.log(`No stomp detected for ${enemyType}, proceeding with normal collision`);
         return true;
     }
 
@@ -212,7 +212,7 @@ export class CollisionManager {
             
             // Шмели не наносят урон
             if (enemyType === 'bumblebee') {
-                console.log(`Bumblebee collision - no damage`);
+                // console.log(`Bumblebee collision - no damage`);
                 return;
             }
             
@@ -227,7 +227,7 @@ export class CollisionManager {
                 
                 // Если игрок прыгает на врага, не наносим урон
                 if (isPlayerFalling && (isTouchingTop || isPlayerAboveEnemy)) {
-                    console.log(`Player jumping on ${enemyType}, no damage`);
+                    // console.log(`Player jumping on ${enemyType}, no damage`);
                     return;
                 }
             }
